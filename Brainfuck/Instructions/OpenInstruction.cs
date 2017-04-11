@@ -1,4 +1,4 @@
-﻿namespace Brainfuck
+﻿namespace Brainfuck.Instructions
 {
     public class OpenInstruction : InstructionBase
     {
@@ -15,7 +15,12 @@
             return "while(mem[p]){";
         }
 
-        public override string ToString()
+        public override string ToBrainfuckStatement()
+        {
+            return "[";
+        }
+
+        public override string ToIntermediateRepresentation()
         {
             return "OPEN";
         }

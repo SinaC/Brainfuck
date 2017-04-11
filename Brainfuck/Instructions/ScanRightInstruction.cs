@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Brainfuck
+﻿namespace Brainfuck.Instructions
 {
     public class ScanRightInstruction : InstructionBase
     {
@@ -19,7 +13,12 @@ namespace Brainfuck
             return "p += (long)(memchr(mem + p, 0, sizeof(mem)) - (void *)(mem + p));";
         }
 
-        public override string ToString()
+        public override string ToBrainfuckStatement()
+        {
+            return "[>]";
+        }
+
+        public override string ToIntermediateRepresentation()
         {
             return "SCANRIGHT";
         }

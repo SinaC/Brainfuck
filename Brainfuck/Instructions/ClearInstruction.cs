@@ -1,4 +1,4 @@
-﻿namespace Brainfuck
+﻿namespace Brainfuck.Instructions
 {
     public class ClearInstruction : InstructionBase
     {
@@ -12,7 +12,12 @@
             return "mem[p] = 0;";
         }
 
-        public override string ToString()
+        public override string ToBrainfuckStatement()
+        {
+            return "[-]";
+        }
+
+        public override string ToIntermediateRepresentation()
         {
             return "CLEAR";
         }

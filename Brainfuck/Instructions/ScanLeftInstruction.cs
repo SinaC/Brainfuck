@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Brainfuck
+﻿namespace Brainfuck.Instructions
 {
     public class ScanLeftInstruction : InstructionBase
     {
@@ -15,7 +13,12 @@ namespace Brainfuck
             return "p -= (long)((void *)(mem + p) - memrchr(mem, 0, p + 1));";
         }
 
-        public override string ToString()
+        public override string ToBrainfuckStatement()
+        {
+            return "[<]";
+        }
+
+        public override string ToIntermediateRepresentation()
         {
             return "SCANLEFT";
         }

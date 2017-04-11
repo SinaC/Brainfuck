@@ -1,4 +1,6 @@
-﻿namespace Brainfuck
+﻿using System.Linq;
+
+namespace Brainfuck.Instructions
 {
     public class RightInstruction : InstructionBase
     {
@@ -14,7 +16,12 @@
             return $"p += {X};";
         }
 
-        public override string ToString()
+        public override string ToBrainfuckStatement()
+        {
+            return string.Concat(Enumerable.Repeat(">", X));
+        }
+
+        public override string ToIntermediateRepresentation()
         {
             return $"RIGHT({X})";
         }

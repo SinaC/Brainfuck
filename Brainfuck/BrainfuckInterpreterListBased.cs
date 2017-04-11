@@ -2,18 +2,122 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Brainfuck.Instructions;
 
 namespace Brainfuck
 {
-    public class BrainfuckInterpreter
+    // TODO:
+    // copy loop
+    // [>+<-] or [->+<] ==> mem[p+1] += mem[p] and mem[p] = 0
+    // [>>+<<-] or [->>+<<] ==> mem[p+2] += mem[p] and mem[p] = 0
+    // [>>>>>>>>>+<<<<<<<<<-] or [->>>>>>>>>+<<<<<<<<<] ==> mem[p+9] += mem[p] and mem[p] = 0
+    // can be more complex
+    // [->+>+<<] ==> mem[p+1] += mem[p] and mem[p+2] += mem[p] and mem[p] = 0
+    // [>+>>>+>+<<<<<-] ==> mem[p+1] += mem[p] and mem[p+4] += mem[p] and mem[p+5] += mem[p] and mem[p] = 0
+    // [->>>>+<+<+<+<] ==> mem[p+4] += mem[p] and mem[o+3] += mem[p] and mem[p+2] += mem[p] and mem[p+1] += mem[p] and mem[p] = 0
+    // > and < can be interchanged
+    // multiply loop
+    // [>+++++<-] ==> mem[p+1] += 5*mem[p] and mem[p] = 0
+    // [>++++>++>>>+++>+<<<<<<-] ==> mem[p+1] += 4*mem[p] and mem[p+2] += 2*mem[p] and mem[p+5] += 3*mem[p] and mem[p] = 0
+    //
+    // fusing movements into adds
+    // >++< ==> mem[p+1] += 2 
+    //
+    // postponing movements
+    // >+>-> ==> mem[p+1] += 1 and mem[p+2] -= 1 and p += 3
+    //
+    // assign followed by add
+    // CLEAR ADD(X) ==> mem[p] = X
+
+    public class BrainfuckInterpreterListBased : IBrainfuckInterpreter
     {
+        private static readonly char[] AllowedCharacters = { '+', '-', '>', '<', '.', ',', '[', ']' };
+
         public List<InstructionBase> Instructions { get; } = new List<InstructionBase>();
+
+        //public List<string> Analyse(string input)
+        //{
+        //    List<string> results = new List<string>();
+
+        //    string program = new string(input.ToCharArray().Where(x => AllowedCharacters.Contains(x)).ToArray());
+
+        //    // Count useless characters
+        //    int uselessCharactersCount = input.Length - program.Length;
+        //    if (uselessCharactersCount > 0)
+        //        results.Add($"Useless characters: {uselessCharactersCount}");
+
+        //    // Count clear loop
+        //    int clearLoopCount = Regex.Matches(program, @"\[-\]").Count;
+        //    if (clearLoopCount > 0)
+        //        results.Add($"Clear loop: {clearLoopCount}");
+
+        //    // Count scan left loop
+        //    int scanLeftLoopCount = Regex.Matches(program, @"\[<\]").Count;
+        //    if (scanLeftLoopCount > 0)
+        //        results.Add($"Scan left loop: {scanLeftLoopCount}");
+
+        //    // Count scan right loop
+        //    int scanRightLoopCount = Regex.Matches(program, @"\[>\]").Count;
+        //    if (scanRightLoopCount > 0)
+        //        results.Add($"Scan right loop: {scanRightLoopCount}");
+
+        //    // Count 'RLE'
+        //    int addCount = 0;
+        //    int subCount = 0;
+        //    int leftCount = 0;
+        //    int rightCount = 0;
+        //    int programPtr = 0;
+        //    while (programPtr < program.Length)
+        //    {
+        //        char instruction = program[programPtr];
+        //        // check RLE
+        //        int instructionCount = 1;
+        //        while (true)
+        //        {
+        //            programPtr++;
+        //            if (programPtr >= program.Length)
+        //                break;
+        //            char nextInstruction = program[programPtr];
+        //            if (nextInstruction == instruction && instructionCount < 255 && (nextInstruction == '+' || nextInstruction == '-' || nextInstruction == '>' || nextInstruction == '<'))
+        //                instructionCount++;
+        //            else
+        //                break;
+        //        }
+        //        if (instructionCount > 1)
+        //        {
+        //            switch (instruction)
+        //            {
+        //                case '+':
+        //                    addCount++;
+        //                    break;
+        //                case '-':
+        //                    subCount++;
+        //                    break;
+        //                case '<':
+        //                    leftCount++;
+        //                    break;
+        //                case '>':
+        //                    rightCount++;
+        //                    break;
+        //            }
+        //        }
+        //    }
+        //    if (addCount > 0)
+        //        results.Add($"Multiple consecutive +: {addCount}");
+        //    if (subCount > 0)
+        //        results.Add($"Multiple consecutive -: {subCount}");
+        //    if (leftCount > 0)
+        //        results.Add($"Multiple consecutive <: {leftCount}");
+        //    if (rightCount > 0)
+        //        results.Add($"Multiple consecutive >: {rightCount}");
+
+        //    return results;
+        //}
 
         public void Parse(string input)
         {
             // clear unwanted characters
-            char[] allowedCharacters = {'+', '-', '>', '<', '.', ',', '[', ']'};
-            string program = new string(input.ToCharArray().Where(x => allowedCharacters.Contains(x)).ToArray());
+            string program = new string(input.ToCharArray().Where(x => AllowedCharacters.Contains(x)).ToArray());
 
             // search clear loop [-] and replace them with precompiler instruction C
             program = program.Replace("[-]", "C");
@@ -21,14 +125,6 @@ namespace Brainfuck
             program = program.Replace("[<]", "L");
             // search for scan right loop [>] and replace them with precompiler instruction R
             program = program.Replace("[>]", "R");
-
-            // TODO:
-            // copy loop
-            // [>+<-] or [->+<] => mem[p+1] += mem[p] and mem[p] = 0
-            // [>>+<<-] or [->>+<<] => mem[p+2] += mem[p] and mem[p] = 0
-            // [>>>>>>>>>+<<<<<<<<<-] or [->>>>>>>>>+<<<<<<<<<] => mem[p+9] += mem[p] and mem[p] = 0
-            // can be more complex
-            // [->+>+<<] mem[p+1] += mem[p] and mem[p+2] += mem[p] and mem[p] = 0
 
             // parse program and convert to instructions
             Stack<int> loopStack = new Stack<int>();
@@ -118,6 +214,8 @@ namespace Brainfuck
                         Instructions.Add(new ScanRightInstruction());
                         instructionPtr++;
                         break;
+                    default:
+                        throw new InvalidOperationException($"Unknown instruction {instruction}");
                 }
             }
             if (loopStack.Count > 0)
@@ -161,6 +259,17 @@ namespace Brainfuck
             sb.AppendLine("   return 0;");
             sb.AppendLine("}");
             return sb.ToString();
+        }
+
+        public string ToBrainfuckStatement(int lineLength = 0)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (InstructionBase instruction in Instructions)
+                sb.Append(instruction.ToBrainfuckStatement());
+            string s = sb.ToString();
+            if (lineLength > 0)
+                return string.Join(Environment.NewLine, s.SplitInParts(lineLength));
+            return s;
         }
 
         public string ToIntermediaryRepresentation()

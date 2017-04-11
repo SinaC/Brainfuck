@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Brainfuck.Instructions;
 
 namespace Brainfuck
 {
@@ -8,7 +9,7 @@ namespace Brainfuck
     class Program
     {
         private static string ProgramDummy =
-            "++>+++++[<+>-]"; // Cell 0 = 2+5
+            "++>+++++[<+>-]>[-]"; // Cell 0 = 2+5
 
         static string Program2Plus5 =
             "++                       Cell c0 = 2" +
@@ -239,17 +240,32 @@ namespace Brainfuck
             "+[-[->>>>>>>>>+<<<<<<<<<]>>>>>>>>>]>>>>>->>>>>>>>>>>>>>>>>>>>>>>>>>>-<<<<<<[<<<<" +
             "<<<<<]]>>>]";
 
+        //http://calmerthanyouare.org/2015/01/07/optimizing-brainfuck.html
+        //https://www.nayuki.io/page/optimizing-brainfuck-compiler
         //https://github.com/rdebath/Brainfuck/tree/master/testing
         //https://github.com/matslina/bfoptimization/tree/master/progs
 
         static void Main(string[] args)
         {
-            BrainfuckInterpreter interpreter = new BrainfuckInterpreter();
-            interpreter.Parse(ProgramGameOfLife);
-            string statements = interpreter.ToCStatements();
-            Debug.WriteLine(statements);
-            interpreter.Execute();
-            //RleOptimizedInterpreter(ProgramMandelbrot);
+            string prg = ProgramDummy;
+            BrainfuckInterpreterTest t = new BrainfuckInterpreterTest();
+            List<InstructionBase> i0 = t.ToIntermediateRepresentation(prg);
+            //List<InstructionBase> i1 = t.OptimizeClearLoop(i0);
+            List<InstructionBase> i1 = t.OptimizeContract(i0);
+
+            //BrainfuckInterpreterTreeBased interpreter = new BrainfuckInterpreterTreeBased();
+            //BrainfuckInterpreterListBased interpreter = new BrainfuckInterpreterListBased();
+            //List<string> analyze = interpreter.Analyse(prg);
+            //foreach(string s in analyze)
+            //    Debug.WriteLine(s);
+            //interpreter.Parse(prg);
+            //string cStatements = interpreter.ToCStatements();
+            //Debug.WriteLine(cStatements);
+            //string bfStatements = interpreter.ToBrainfuckStatement(80);
+            //Debug.WriteLine(bfStatements);
+            //interpreter.Execute();
+
+            //NaiveInterpreter(ProgramMandelbrot);
         }
 
         private static void RleOptimizedInterpreter(string program)

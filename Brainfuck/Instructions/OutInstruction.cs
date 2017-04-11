@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Brainfuck
+namespace Brainfuck.Instructions
 {
     public class OutInstruction : InstructionBase
     {
@@ -14,7 +14,12 @@ namespace Brainfuck
             return "putchar(mem[p]);";
         }
 
-        public override string ToString()
+        public override string ToBrainfuckStatement()
+        {
+            return ".";
+        }
+
+        public override string ToIntermediateRepresentation()
         {
             return "OUT";
         }

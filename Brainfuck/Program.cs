@@ -9,7 +9,10 @@ namespace Brainfuck
     class Program
     {
         private static string ProgramDummy =
-            "++>+++++[<+>-]>[-]"; // Cell 0 = 2+5
+            "++>+++++[<+>-]>[-][<]"; // Cell 0 = 2+5
+
+        private static string ProgramCancel =
+            "+++-->>+-<<<"; // ==>> +<
 
         static string Program2Plus5 =
             "++                       Cell c0 = 2" +
@@ -247,11 +250,16 @@ namespace Brainfuck
 
         static void Main(string[] args)
         {
-            string prg = ProgramDummy;
-            BrainfuckInterpreterTest t = new BrainfuckInterpreterTest();
+            string prg = ProgramMandelbrot;
+            BrainfuckInterpreterOptimizer t = new BrainfuckInterpreterOptimizer();
             List<InstructionBase> i0 = t.ToIntermediateRepresentation(prg);
             //List<InstructionBase> i1 = t.OptimizeClearLoop(i0);
+            //List<InstructionBase> i1 = t.OptimizeScanLoop(i0);
             List<InstructionBase> i1 = t.OptimizeContract(i0);
+            //List<InstructionBase> i2 = t.OptimizeCancel(i1);
+            //List<InstructionBase> i2 = t.OptimizeCopyMultiplyLoop(i1); // --> problem with mandelbrot
+
+            t.Execute(i1);
 
             //BrainfuckInterpreterTreeBased interpreter = new BrainfuckInterpreterTreeBased();
             //BrainfuckInterpreterListBased interpreter = new BrainfuckInterpreterListBased();

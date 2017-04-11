@@ -43,7 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BrainfuckInterpreterTest.cs" />
+    <Compile Include="BrainfuckInterpreterOptimizer.cs" />
     <Compile Include="IBrainfuckInterpreter.cs" />
     <Compile Include="Instructions\AddInstruction.cs" />
     <Compile Include="BrainfuckInterpreterListBased.cs" />
@@ -53,8 +53,11 @@
     <Compile Include="Instructions\InInstruction.cs" />
     <Compile Include="Instructions\InstructionBase.cs" />
     <Compile Include="Instructions\LeftInstruction.cs" />
+    <Compile Include="Instructions\MulInstruction.cs" />
     <Compile Include="Instructions\OpenInstruction.cs" />
     <Compile Include="Instructions\OutInstruction.cs" />
+    <Compile Include="Instructions\ArithmeticInstructionBase.cs" />
+    <Compile Include="Instructions\PositionInstructionBase.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Instructions\RightInstruction.cs" />

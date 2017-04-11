@@ -1,11 +1,10 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 
 namespace Brainfuck.Instructions
 {
-    public class RightInstruction : InstructionBase
+    public class RightInstruction : PositionInstructionBase
     {
-        public int X { get; set; }
-
         public override void Execute(byte[] memory, ref int memoryPtr, ref int instructionPtr)
         {
             memoryPtr += X;
@@ -25,5 +24,7 @@ namespace Brainfuck.Instructions
         {
             return $"RIGHT({X})";
         }
+
+        public override Type OppositeType => typeof(LeftInstruction);
     }
 }

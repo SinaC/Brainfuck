@@ -4,12 +4,15 @@ namespace Brainfuck.Instructions
 {
     public class MulInstruction : InstructionBase
     {
-        public byte Factor { get; set; }
+        public short Factor { get; set; }
         public int Offset { get; set; }
 
         public override void Execute(byte[] memory, ref int memoryPtr, ref int instructionPtr)
         {
-            memory[memoryPtr + Offset] += (byte)(memory[memoryPtr]*Factor);
+            if (Factor > 0)
+                memory[memoryPtr + Offset] += (byte)(memory[memoryPtr]*Factor);
+            else
+                memory[memoryPtr + Offset] -= (byte)(memory[memoryPtr] * -Factor);
         }
 
         public override string ToCStatement()
@@ -23,12 +26,13 @@ namespace Brainfuck.Instructions
 
         public override string ToBrainfuckStatement()
         {
+            // It's not possible to generate BF statements for this instruction
             throw new NotImplementedException();
         }
 
         public override string ToIntermediateRepresentation()
         {
-            return $"MUL({Factor},{Offset})";
+            return $"MUL({Offset}, {Factor})";
         }
     }
 }

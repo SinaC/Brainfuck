@@ -43,8 +43,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BrainfuckInterpreterOptimizer.cs" />
+    <Compile Include="BrainfuckInterpreterFirstTry.cs" />
+    <Compile Include="BrainfuckInterpreterOptimized.cs" />
+    <Compile Include="BrainfuckPrograms.cs" />
     <Compile Include="IBrainfuckInterpreter.cs" />
+    <Compile Include="IDictionaryExtensions.cs" />
     <Compile Include="Instructions\AddInstruction.cs" />
     <Compile Include="BrainfuckInterpreterListBased.cs" />
     <Compile Include="BrainfuckInterpreterTreeBased.cs" />

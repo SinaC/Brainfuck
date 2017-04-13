@@ -22,15 +22,15 @@ namespace Brainfuck.Instructions
         public override string ToBrainfuckStatement()
         {
             if (Offset > 0)
-                return string.Concat(Enumerable.Repeat(">", Offset)) + string.Concat(Enumerable.Repeat("+", X));
+                return string.Concat(Enumerable.Repeat(">", Offset)) + string.Concat(Enumerable.Repeat("+", X)) + string.Concat(Enumerable.Repeat("<", Offset));
             if (Offset < 0 )
-                return string.Concat(Enumerable.Repeat("<", Offset)) + string.Concat(Enumerable.Repeat("+", X));
+                return string.Concat(Enumerable.Repeat("<", Offset)) + string.Concat(Enumerable.Repeat("+", X)) + string.Concat(Enumerable.Repeat(">", Offset));
             return string.Concat(Enumerable.Repeat("+", X));
         }
 
         public override string ToIntermediateRepresentation()
         {
-            return $"ADD({X},{Offset})";
+            return $"ADD({Offset}, {X})";
         }
 
         public override Type OppositeType => typeof(SubInstruction);

@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Microsoft.Win32.SafeHandles;
 
 namespace Piet
 {
@@ -48,13 +50,16 @@ namespace Piet
 
         public static int WhiteIndex = 18;
         public static int BlackIndex = 19;
-        public static int MarkIndex = 999; // dummy color for fill
+        public static int MarkIndex = 999; // neutral color for fill
+        public static int InvalidIndex = -1;
 
         // Hue Cycle: Red -> Yellow -> Green -> Cyan -> Blue -> Magenta -> Red
         public Func<int, int> NextHue => index => (index/6)*6 + (index + 1)%6; // Next column in Colors table
+        public Func<int, int, int> HueDiff => (index1, index2) => (6 + Hue(index2) - Hue(index1)) % 6;
         public Func<int, int> Hue => index => index < 18 ? index%6 : index;
         // Lightness Cycle: Light -> Normal -> Dark -> Light
         public Func<int, int> NextLightness => index => (index + 6)%18;
+        public Func<int, int, int> LightnessDiff => (index1, index2) => (3 + Lightness(index2) - Lightness(index1))%3;
         public Func<int, int> Lightness => index => index < 18 ? index/6 : index;
         // Advance Color
         public Func<int, int, int, int> AdvanceColor => (index, hue, lightness) => (index%6 + hue)%6 + 6*((index/6 + lightness)%3);
@@ -63,21 +68,19 @@ namespace Piet
         public int CodelsWidth { get; private set; }
         public int CodelsHeight { get; private set; }
         public int[] Codels { get; private set; }
-        public int CodelX { get; private set; }
-        public int CodelY { get; private set; }
 
         private int this[int x, int y]
         {
             get
             {
-                if (x < 0 || x > CodelsWidth || y < 0 || y > CodelsHeight)
-                    return -1;
+                if (x < 0 || x >= CodelsWidth || y < 0 || y >= CodelsHeight)
+                    return InvalidIndex;
                 int index = x + y*CodelsWidth;
                 return Codels[index];
             }
             set
             {
-                if (x < 0 || x > CodelsWidth || y < 0 || y > CodelsHeight)
+                if (x < 0 || x >= CodelsWidth || y < 0 || y >= CodelsHeight)
                     throw new ArgumentOutOfRangeException();
                 int index = x + y * CodelsWidth;
                 Codels[index] = value;
@@ -92,7 +95,7 @@ namespace Piet
             Left,
             Up
         }
-        public PointerDirections DirectionPointer { get; private set; }
+        public PointerDirections DirectionPointer { get; private set; } // aka DP
 
         public enum CodelChoosers
         {
@@ -100,7 +103,52 @@ namespace Piet
             Right
         }
 
-        public CodelChoosers CodelChooser { get; private set; }
+        public CodelChoosers CodelChooser { get; private set; } // aka CC
+
+        public int ToggleCount { get; private set; }
+
+        public Func<CodelChoosers, CodelChoosers> ToggleCodelChooser => cc => cc == CodelChoosers.Left ? CodelChoosers.Right : CodelChoosers.Left;
+
+        public Func<PointerDirections, PointerDirections> TurnDirectionPointerClockwise => dp =>
+        {
+            switch (dp)
+            {
+                case PointerDirections.Right:
+                    return PointerDirections.Down;
+                    case PointerDirections.Down:
+                    return PointerDirections.Left;
+                    case PointerDirections.Left:
+                    return PointerDirections.Up;
+                    case PointerDirections.Up:
+                    return PointerDirections.Right;
+                default:
+                    throw new InvalidOperationException($"Invalid PointerDirections:{dp}");
+            }
+        };
+        public Func<PointerDirections, PointerDirections> TurnDirectionPointerCounterClockwise => dp =>
+        {
+            switch (dp)
+            {
+                case PointerDirections.Down:
+                    return PointerDirections.Right;
+                case PointerDirections.Right:
+                    return PointerDirections.Up;
+                case PointerDirections.Up:
+                    return PointerDirections.Left;
+                case PointerDirections.Left:
+                    return PointerDirections.Down;
+                default:
+                    throw new InvalidOperationException($"Invalid PointerDirections:{dp}");
+            }
+        };
+
+        public Func<PointerDirections, int> DirectionX => dp => dp == PointerDirections.Left ? -1 : (dp == PointerDirections.Right ? 1 : 0);
+        public Func<PointerDirections, int> DirectionY => dp => dp == PointerDirections.Up ? -1 : (dp == PointerDirections.Down ? 1 : 0);
+
+        public PietStack Stack { get; private set; }
+
+        public string Output { get; private set; }
+        public Func<string> InputFunc { get; set; }
 
         public void Parse(string imageFilename, int codelSize)
         {
@@ -120,13 +168,21 @@ namespace Piet
 
         public void Execute()
         {
-            CodelX = 0; // upper left
-            CodelY = 0; // upper left
+            Stack = new PietStack();
+
+            int codelX = 0; // upper left
+            int codelY = 0; // upper left
             DirectionPointer = PointerDirections.Right;
             CodelChooser = CodelChoosers.Left;
+            ToggleCount = 0;
 
-            // TODO: loop
-            ExecuteStep();
+            while (true)
+            {
+                bool canContinue = ExecuteStep(ref codelX, ref codelY);
+                if (!canContinue)
+                    break;
+                Debug.WriteLine("Execution ended");
+            }
         }
 
         public BitmapSource GenerateImageFromCodels()
@@ -150,10 +206,11 @@ namespace Piet
             return BitmapSource.Create(CodelsWidth, CodelsHeight, 72, 72, PixelFormats.Bgra32, null, byteArray, stride);
         }
 
-        private bool ExecuteStep()
+        private bool ExecuteStep(ref int codelX, ref int codelY)
         {
-            // Current cell color
-            int colorIndex = this[CodelX, CodelY];
+            // Current codel color
+            int colorIndex = this[codelX, codelY];
+            bool whiteCrossed = colorIndex == WhiteIndex;
 
             // cannot start on black
             if (colorIndex == BlackIndex)
@@ -165,90 +222,454 @@ namespace Piet
             // Max 8 tries
             for (int t = 0; t < 8; t++)
             {
-                
+                Debug.WriteLine($"Try {t} with {codelX},{codelY},{colorIndex}");
+                int bestX = codelX, bestY = codelY, codelCount;
+                if (colorIndex == WhiteIndex)
+                {
+                    Debug.WriteLine("Special case: white codel"); // no need to display
+                    codelCount = 1;
+                }
+                else
+                {
+                    // Search best X, Y
+                    codelCount = 0;
+                    bool found = SearchFurthestCodel(codelX, codelY, colorIndex, MarkIndex, ref bestX, ref bestY, ref codelCount);
+                    if (!found)
+                        throw new ApplicationException("Internal error");
+                    ResetSearch(codelX, codelY, colorIndex, MarkIndex);
+                    int bestColorIndex = this[bestX, bestY];
+                    Debug.WriteLine($"Best found: dp:{DirectionPointer} cc:{CodelChooser} => from {codelX},{codelY},{colorIndex} to {bestX},{bestY},{bestColorIndex}");
+                }
+
+                // Find adjacent codel to best codel according to DP
+                int adjacentX = bestX + DirectionX(DirectionPointer);
+                int adjacentY = bestY + DirectionY(DirectionPointer);
+                int adjacentColorIndex = this[adjacentX, adjacentY];
+
+                Debug.WriteLine($"Adjacent: dp:{DirectionPointer} cc: {CodelChooser} => {adjacentX},{adjacentY},{adjacentColorIndex}");
+
+                // White block (pass-thru)
+                if (adjacentColorIndex == WhiteIndex)
+                {
+                    Debug.WriteLine("White block hit");
+                    // white coloured block are free zone thru which interpreter passes unhindered (see http://www.dangermouse.net/esoteric/piet.html)
+                    // if transition between colored blocks occurs via a slide across a white block, no command is executed
+                    while (adjacentColorIndex == WhiteIndex)
+                    {
+                        Debug.WriteLine($"White codel passed to {adjacentX},{adjacentY},{adjacentColorIndex}");
+                        adjacentX += DirectionX(DirectionPointer);
+                        adjacentY += DirectionY(DirectionPointer);
+                        adjacentColorIndex = this[adjacentX, adjacentY];
+                    }
+
+                    Debug.WriteLine($"White block crossed at {adjacentX},{adjacentY},{adjacentColorIndex}");
+
+                    whiteCrossed = true;
+                    // black or wall
+                    if (adjacentColorIndex == InvalidIndex || adjacentColorIndex == BlackIndex)
+                    {
+                        // when sliding into a black block or wall, we set white block as the current block
+                        adjacentColorIndex = WhiteIndex;
+                        adjacentX -= DirectionX(DirectionPointer);
+                        adjacentY -= DirectionY(DirectionPointer);
+                        Debug.WriteLine($"Entering white block at {adjacentX},{adjacentY},{adjacentColorIndex}");
+                    }
+                }
+
+                // Black or wall
+                if (adjacentColorIndex == InvalidIndex || adjacentColorIndex == BlackIndex)
+                {
+                    Debug.WriteLine("Black or wall hit");
+                    if (colorIndex == WhiteIndex) // currently in white
+                    {
+                        // turn DP and toggle CC
+                        DirectionPointer = TurnDirectionPointerClockwise(DirectionPointer);
+                        CodelChooser = ToggleCodelChooser(CodelChooser);
+                        Debug.WriteLine($"Currently in white => turn DP {DirectionPointer} and toggle CC {CodelChooser}");
+                    }
+                    else
+                    {
+                        // Toggle DP or CC
+                        if (ToggleCount%2 == 0)
+                        {
+                            Debug.WriteLine("Currently not in white => toggle CC");
+                            CodelChooser = ToggleCodelChooser(CodelChooser);
+                        }
+                        else
+                        {
+                            Debug.WriteLine("Currently not in white => turn DP");
+                            DirectionPointer = TurnDirectionPointerClockwise(DirectionPointer);
+                        }
+                        ToggleCount++;
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine($"{codelX},{codelY},{colorIndex} => {adjacentX},{adjacentY},{adjacentColorIndex}  codel count:{codelCount}");
+
+
+                    if (whiteCrossed)
+                        Debug.WriteLine("White block crossed -> no instruction");
+                    else
+                    {
+                        // Perform instruction
+                        PerformInstruction(colorIndex, adjacentColorIndex, codelCount);
+                    }
+
+                    // use adjacent as new start point
+                    codelX = adjacentX;
+                    codelY = adjacentY;
+                    return true;
+                }
             }
 
-            // TODO
+            return false;
+        }
+        
+        /*
+         *       Lightness
+         * Hue   0         1           2
+         * 0    /         push        pop
+         * 1    add       sub         mul
+         * 2    div       mod         not
+         * 3    greater   pointer     switch
+         * 4    dup       roll        in number
+         * 5    in char   out number  out char
+        */
+        private void PerformInstruction(int fromColorIndex, int toColorIndex, int codelCount)
+        {
+            int hueDiff = HueDiff(fromColorIndex, toColorIndex);
+            int lightnessDiff = LightnessDiff(fromColorIndex, toColorIndex);
 
-            // Search best X, Y
-            int bestX = CodelX, bestY = CodelY, cellCount = 0; // cellCount = 1 if white
-            bool found = Fill(CodelX, CodelY, colorIndex, MarkIndex, ref bestX, ref bestY, ref cellCount);
-            if (!found)
-                throw new ApplicationException("Internal error");
-            ResetFill(CodelX, CodelY, colorIndex, MarkIndex);
-            Debug.WriteLine($"Best found: dp:{DirectionPointer} cc:{CodelChooser}  from {CodelX},{CodelY}: {bestX},{bestY}");
+            Debug.WriteLine($"Action: Hue:{hueDiff} Lightness:{lightnessDiff}");
 
-            // TODO
-
-            return true;
+            switch (hueDiff)
+            {
+                case 0: // NOP, Push, Pop
+                    switch (lightnessDiff)
+                    {
+                        case 0: // NOP
+                            Debug.WriteLine("Action: NOP");
+                            break;
+                        case 1: // Push
+                            Debug.WriteLine($"Action: PUSH {codelCount}");
+                            Stack.Push(codelCount);
+                            break;
+                        case 2: // Pop
+                            if (Stack.Count == 0)
+                                Debug.WriteLine("Action: POP failed: stack underflow");
+                            else
+                            {
+                                Debug.WriteLine("Action: POP");
+                                Stack.Pop(); // Pop and discard
+                            }
+                            break;
+                    }
+                    break;
+                case 1: // Add, Sub, Mul
+                    switch (lightnessDiff)
+                    {
+                        case 0: // Add
+                            // Pop 2 values, add them and push back result
+                            if (Stack.Count < 2)
+                                Debug.WriteLine("Action: ADD failed: stack underflow");
+                            else
+                            {
+                                int operand2 = Stack.Pop();
+                                int operand1 = Stack.Pop();
+                                int result = operand1 + operand2;
+                                Debug.WriteLine($"Action: ADD({operand1},{operand2})={result}");
+                                Stack.Push(result);
+                            }
+                            break;
+                        case 1: // Sub
+                            // Pop 2 values, sub (top from second top) them and push back result
+                            if (Stack.Count < 2)
+                                Debug.WriteLine("Action: SUB failed: stack underflow");
+                            else
+                            {
+                                int operand2 = Stack.Pop();
+                                int operand1 = Stack.Pop();
+                                int result = operand1 - operand2;
+                                Debug.WriteLine($"Action: SUB({operand1},{operand2})={result}");
+                                Stack.Push(result);
+                            }
+                            break;
+                        case 2: // Mul
+                            // Pop 2 values, multiply them and push back result
+                            if (Stack.Count < 2)
+                                Debug.WriteLine("Action: MUL failed: stack underflow");
+                            else
+                            {
+                                int operand2 = Stack.Pop();
+                                int operand1 = Stack.Pop();
+                                int result = operand1 * operand2;
+                                Debug.WriteLine($"Action: MUL({operand1},{operand2})={result}");
+                                Stack.Push(result);
+                            }
+                            break;
+                    }
+                    break;
+                case 2: // Div, Mod, Not
+                    switch (lightnessDiff)
+                    {
+                        case 0: // Div
+                            // Pop 2 values, divide (second top by top) them and push back result
+                            if (Stack.Count < 2)
+                                Debug.WriteLine("Action: DIV failed: stack underflow");
+                            else
+                            {
+                                int operand2 = Stack.Pop();
+                                int operand1 = Stack.Pop();
+                                int result = operand1 / operand2;
+                                Debug.WriteLine($"Action: DIV({operand1},{operand2})={result}");
+                                Stack.Push(result);
+                            }
+                            break;
+                        case 1: // Mod
+                            // Pop 2 values, mod (second top modulo top) them and push back result
+                            if (Stack.Count < 2)
+                                Debug.WriteLine("Action: MOD failed: stack underflow");
+                            else
+                            {
+                                int operand2 = Stack.Pop();
+                                int operand1 = Stack.Pop();
+                                int result = operand1 % operand2;
+                                Debug.WriteLine($"Action: MOD({operand1},{operand2})={result}");
+                                Stack.Push(result);
+                            }
+                            break;
+                        case 2: // Not
+                            // Pop 1 value, not (0->1, 0 otherwise) it and push back result
+                            if (Stack.Count == 0)
+                                Debug.WriteLine("Action: NOT failed: stack underflow");
+                            else
+                            {
+                                int operand = Stack.Pop();
+                                int result = operand == 0 ? 1 : 0;
+                                Debug.WriteLine($"Action: NOT({operand})={result}");
+                                Stack.Push(result);
+                            }
+                            break;
+                    }
+                    break;
+                case 3: // greater, pointer, switch
+                    switch (lightnessDiff)
+                    {
+                        case 0: // Greater
+                            // Pop 2 values, if second top > top push 1, push 0 otherwise
+                            if (Stack.Count < 2)
+                                Debug.WriteLine("Action: GREATER failed: stack underflow");
+                            else
+                            {
+                                int operand2 = Stack.Pop();
+                                int operand1 = Stack.Pop();
+                                int result = operand1 > operand2 ? 1 : 0;
+                                Debug.WriteLine($"Action: GREATER({operand1},{operand2})={result}");
+                                Stack.Push(result);
+                            }
+                            break;
+                        case 1: // Pointer
+                            // Pop 1 value, turn DP clockwise if positive, counterclockwise otherwise
+                            if (Stack.Count == 0)
+                                Debug.WriteLine("Action: POINTER failed: stack underflow");
+                            else
+                            {
+                                int operand = Stack.Pop();
+                                int absOperand = operand;
+                                Func<PointerDirections, PointerDirections> func;
+                                if (absOperand > 0)
+                                    func = TurnDirectionPointerClockwise;
+                                else
+                                {
+                                    absOperand = -absOperand;
+                                    func = TurnDirectionPointerClockwise;
+                                }
+                                for (int i = 0; i < absOperand % 4; i++)
+                                    DirectionPointer = func(DirectionPointer);
+                                Debug.WriteLine($"Action: POINTER({operand})={DirectionPointer}");
+                            }
+                            break;
+                        case 2: // Switch
+                            // Pop 1 value, toggle CC that many times
+                            if (Stack.Count == 0)
+                                Debug.WriteLine("Action: SWITCH failed: stack underflow");
+                            else
+                            {
+                                int operand = Stack.Pop();
+                                for (int i = 0; i < operand % 4; i++)
+                                    CodelChooser = ToggleCodelChooser(CodelChooser);
+                                Debug.WriteLine($"Action: SWITCH({operand})={CodelChooser}");
+                            }
+                            break;
+                    }
+                    break;
+                case 4: // dup, roll, in number
+                    switch (lightnessDiff)
+                    {
+                        case 0: // Duplicate
+                            // Push a copy of top value
+                            if (Stack.Count == 0)
+                                Debug.WriteLine("Action: DUPLICATE failed: stack underflow");
+                            else
+                            {
+                                int operand = Stack.Peek();
+                                Stack.Push(operand);
+                                Debug.WriteLine($"Action: DUPLICATE({operand})");
+                            }
+                            break;
+                        case 1: // Roll
+                            // Pop 2 values, roll remaining stack entries to a depth equals to the second top by a number of rolls equal to top (see http://www.dangermouse.net/esoteric/piet.html)
+                            //  roll of depth k: move top at position k in stack and move up every value above k'th position
+                            if (Stack.Count < 2)
+                                Debug.WriteLine("Action: ROLL failed: stack underflow");
+                            else
+                            {
+                                int roll = Stack.Pop();
+                                int depth = Stack.Pop();
+                                if (depth < 0)
+                                    Debug.WriteLine($"Action: ROLL failed: negative depth {depth}");
+                                else if (Stack.Count < depth)
+                                    Debug.WriteLine($"Action: ROLL failed: stack underflow {depth}");
+                                else
+                                    Stack.Roll(roll, depth);
+                            }
+                            break;
+                        case 2: // In number
+                            // Read a number from stdin and push it
+                            string inputAsString = InputFunc?.Invoke();
+                            int inputNumber;
+                            if (!int.TryParse(inputAsString, out inputNumber))
+                                Debug.WriteLine($"Action: IN NUMBER failed: invalid input {inputAsString}");
+                            else
+                            {
+                                Debug.WriteLine($"Action: IN NUMBER({inputNumber}");
+                                Stack.Push(inputNumber);
+                            }
+                            break;
+                    }
+                    break;
+                case 5: // in char, out number, out char
+                    switch (lightnessDiff)
+                    {
+                        case 0: // In char
+                            // Read a char from stdin and push it
+                            string inputAsString = InputFunc?.Invoke();
+                            if (string.IsNullOrEmpty(inputAsString))
+                                Debug.WriteLine("Action: IN CHAR failed: null or empty input");
+                            else
+                            {
+                                int inputChar = inputAsString[0] % 255;
+                                Debug.WriteLine($"Action: IN CHAR({inputChar})");
+                                Stack.Push(inputChar);
+                            }
+                            break;
+                        case 1: // Out number
+                            // Pop 1 value, print it on stdout as number
+                            if (Stack.Count == 0)
+                                Debug.WriteLine("Action: OUT NUMBER failed: stack underflow");
+                            else
+                            {
+                                int operand = Stack.Pop();
+                                Debug.WriteLine($"Action: OUT NUMBER({operand})");
+                                Output += operand;
+                            }
+                            break;
+                        case 2: // Out char
+                            // Pop 1 value, print it on stdout as char
+                            if (Stack.Count == 0)
+                                Debug.WriteLine("Action: OUT CHAR failed: stack underflow");
+                            else
+                            {
+                                int outputAsInt = Stack.Pop();
+                                char operand = (char) (outputAsInt%255);
+                                Debug.WriteLine($"Action: OUT CHAR({operand})");
+                                Output += operand;
+                            }
+                            break;
+                    }
+                    break;
+            }
         }
 
-        private bool Fill(int x, int y, int currentColorIndex, int markColorIndex, ref int bestX, ref int bestY, ref int cellCount)
+        // Search furthest codel in current codel color region
+        private bool SearchFurthestCodel(int x, int y, int currentColorIndex, int markColorIndex, ref int bestX, ref int bestY, ref int codelCount)
         {
+            // Use a simple recursive fill algorithm with a neutral color (markColorIndex)
             int color = this[x, y];
-            if (color < 0 || color != currentColorIndex || color == markColorIndex)
-                // invalid cell reached
+            if (color == InvalidIndex || color != currentColorIndex || color == markColorIndex)
+                // invalid codel reached
                 return false;
 
-            Debug.WriteLine($"Fill: {x},{y} = {color}");
+            Debug.WriteLine($"Fill: {x},{y},{color}");
 
             // check if codel is the furthest according db/cc direction
+            // DP       CC      Codel
+            // Right    Left    Top
+            //          Right   Bottom
+            // Down     Left    Right
+            //          Right   Left
+            // Left     Left    Bottom
+            //          Right   Top
+            // Up       Left    Left
+            //          Right   Right
             bool found = false;
-            if (DirectionPointer == PointerDirections.Left && x <= bestX)
-            {
-                if ((x < bestX) || (CodelChooser == CodelChoosers.Left && y > bestY) || (CodelChooser == CodelChoosers.Right && y < bestY))
-                    found = true;
-            }
-            else if (DirectionPointer == PointerDirections.Right && x >= bestX)
+            if (DirectionPointer == PointerDirections.Right && x >= bestX) // right
             {
                 if ((x > bestX) || (CodelChooser == CodelChoosers.Left && y < bestY) || (CodelChooser == CodelChoosers.Right && y > bestY))
                     found = true;
             }
-            else if (DirectionPointer == PointerDirections.Up && y <= bestY)
-            {
-                if ((y < bestY) || (CodelChooser == CodelChoosers.Left && x < bestX) || (CodelChooser == CodelChoosers.Right && x > bestX))
-                    found = true;
-            }
-            else if (DirectionPointer == PointerDirections.Up && y >= bestY)
+            else if (DirectionPointer == PointerDirections.Down && y >= bestY) // down
             {
                 if ((y > bestY) || (CodelChooser == CodelChoosers.Left && x > bestX) || (CodelChooser == CodelChoosers.Right && x < bestX))
+                    found = true;
+            }
+            else if(DirectionPointer == PointerDirections.Left && x <= bestX) // left
+            {
+                if ((x < bestX) || (CodelChooser == CodelChoosers.Left && y > bestY) || (CodelChooser == CodelChoosers.Right && y < bestY))
+                    found = true;
+            }
+            else if (DirectionPointer == PointerDirections.Up && y <= bestY) // up
+            {
+                if ((y < bestY) || (CodelChooser == CodelChoosers.Left && x < bestX) || (CodelChooser == CodelChoosers.Right && x > bestX))
                     found = true;
             }
 
             if (found)
             {
-                Debug.WriteLine($"New best: dp:{DirectionPointer} cc:{CodelChooser}    {bestX},{bestY} => {x},{y}");
+                Debug.WriteLine($"New best: dp:{DirectionPointer} cc:{CodelChooser}    {bestX},{bestY},{this[bestX, bestY]} => {x},{y},{color}");
                 bestX = x;
                 bestY = y;
             }
 
             this[x, y] = markColorIndex; // set to mark color
 
-            cellCount++;
+            // one mode codel found in this color block
+            codelCount++;
 
             // Recursive call on neighbourhood
-            Fill(x + 1, y, currentColorIndex, markColorIndex, ref bestX, ref bestY, ref cellCount); // right
-            Fill(x, y + 1, currentColorIndex, markColorIndex, ref bestX, ref bestY, ref cellCount); // down
-            Fill(x - 1, y, currentColorIndex, markColorIndex, ref bestX, ref bestY, ref cellCount); // left
-            Fill(x, y - 1, currentColorIndex, markColorIndex, ref bestX, ref bestY, ref cellCount); // up
+            SearchFurthestCodel(x + 1, y, currentColorIndex, markColorIndex, ref bestX, ref bestY, ref codelCount); // right
+            SearchFurthestCodel(x, y + 1, currentColorIndex, markColorIndex, ref bestX, ref bestY, ref codelCount); // down
+            SearchFurthestCodel(x - 1, y, currentColorIndex, markColorIndex, ref bestX, ref bestY, ref codelCount); // left
+            SearchFurthestCodel(x, y - 1, currentColorIndex, markColorIndex, ref bestX, ref bestY, ref codelCount); // up
 
             return true;
         }
 
-        private bool ResetFill(int x, int y, int originalColorIndex, int markColorIndex)
+        private bool ResetSearch(int x, int y, int originalColorIndex, int markColorIndex)
         {
             int color = this[x, y];
-            if (color < 0 || color == originalColorIndex || color != markColorIndex)
-                // invalid cell reached
+            if (color == InvalidIndex || color == originalColorIndex || color != markColorIndex)
+                // invalid codel reached
                 return false;
             // set original color
             this[x, y] = originalColorIndex;
 
             // Recursive call on neighbourhood
-            ResetFill(x + 1, y, originalColorIndex, markColorIndex); // right
-            ResetFill(x, y + 1, originalColorIndex, markColorIndex); // down
-            ResetFill(x - 1, y, originalColorIndex, markColorIndex); // left
-            ResetFill(x, y - 1, originalColorIndex, markColorIndex); // up
+            ResetSearch(x + 1, y, originalColorIndex, markColorIndex); // right
+            ResetSearch(x, y + 1, originalColorIndex, markColorIndex); // down
+            ResetSearch(x - 1, y, originalColorIndex, markColorIndex); // left
+            ResetSearch(x, y - 1, originalColorIndex, markColorIndex); // up
 
             return true;
         }
@@ -279,7 +700,9 @@ namespace Piet
                     byte g = pixelColor.G;
                     byte r = pixelColor.R;
                     int colorIndex = Array.FindIndex(Colors, c => c.R == r && c.B == b && c.G == g);
-                    Codels[codelOffset] = colorIndex == -1 ? WhiteIndex : colorIndex;
+                    Codels[codelOffset] = colorIndex == -1
+                        ? WhiteIndex 
+                        : colorIndex;
                     codelOffset++;
                 }
         }

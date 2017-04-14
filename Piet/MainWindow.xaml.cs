@@ -29,16 +29,22 @@ namespace Piet
 
         private void OnLoaded(object sender, RoutedEventArgs routedEventArgs)
         {
-            string filename = @"C:\Prj\Personal\Esolang\Piet\Programs\hello-medium.png";
-            int codelSize = 4;
-            //string filename = @"C:\Prj\Personal\Esolang\Piet\Programs\nprime.gif";
-            //int codelSize = 8;
+            //string filename = @"C:\Prj\Personal\Esolang\Piet\Programs\hello-medium.png";
+            //int codelSize = 4;
+            string filename = @"C:\Prj\Personal\Esolang\Piet\Programs\nprime.gif";
+            int codelSize = 8;
 
-            NaiveInterpreter interpreter = new NaiveInterpreter();
-            interpreter.Parse(filename, codelSize);
-            interpreter.Execute();
-
+            // Display original image
             OriginalImage.Source = new BitmapImage(new Uri(filename, UriKind.Absolute));
+
+            // Parse image
+            NaiveInterpreter interpreter = new NaiveInterpreter
+            {
+                InputFunc = InputFunc
+            };
+            interpreter.Parse(filename, codelSize);
+
+            // Display parsed image
             try
             {
                 ParsedImage.Source = interpreter.GenerateImageFromCodels();
@@ -46,6 +52,19 @@ namespace Piet
             catch (Exception ex)
             {
             }
+
+            // Execute code
+            interpreter.Execute();
+
+            // Display output
+            OutputTextBlock.Text = interpreter.Output;
+        }
+
+        private string InputFunc()
+        {
+            InputWindow inputWindow = new InputWindow();
+            inputWindow.ShowDialog();
+            return inputWindow.InputTextBox.Text;
         }
     }
 }

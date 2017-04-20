@@ -1,45 +1,47 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Microsoft.Win32.SafeHandles;
 
 namespace Piet
 {
     //http://www.dangermouse.net/esoteric/piet.html
     //http://www.dangermouse.net/esoteric/piet/tools.html
-    public class NaiveInterpreter
+    //http://www.rapapaing.com/blog/?page_id=6  debugger
+    public class Interpreter
     {
-        public static readonly Color LightRed = Color.FromRgb(0xFF, 0xC0, 0xC0);
-        public static readonly Color Red = Color.FromRgb(0xFF, 0x00, 0x00);
-        public static readonly Color DarkRed = Color.FromRgb(0xC0, 0x00, 0x00);
+        private static readonly Color LightRed = Color.FromRgb(0xFF, 0xC0, 0xC0);
+        private static readonly Color Red = Color.FromRgb(0xFF, 0x00, 0x00);
+        private static readonly Color DarkRed = Color.FromRgb(0xC0, 0x00, 0x00);
+        
+        private static readonly Color LightYellow = Color.FromRgb(0xFF, 0xFF, 0xC0);
+        private static readonly Color Yellow = Color.FromRgb(0xFF, 0xFF, 0x00);
+        private static readonly Color DarkYellow = Color.FromRgb(0xC0, 0xC0, 0x00);
 
-        public static readonly Color LightYellow = Color.FromRgb(0xFF, 0xFF, 0xC0);
-        public static readonly Color Yellow = Color.FromRgb(0xFF, 0xFF, 0x00);
-        public static readonly Color DarkYellow = Color.FromRgb(0xC0, 0xC0, 0x00);
+        private static readonly Color LightGreen = Color.FromRgb(0xC0, 0xFF, 0xC0);
+        private static readonly Color Green = Color.FromRgb(0x00, 0xFF, 0x00);
+        private static readonly Color DarkGreen = Color.FromRgb(0x00, 0xC0, 0x00);
 
-        public static readonly Color LightGreen = Color.FromRgb(0xC0, 0xFF, 0xC0);
-        public static readonly Color Green = Color.FromRgb(0x00, 0xFF, 0x00);
-        public static readonly Color DarkGreen = Color.FromRgb(0x00, 0xC0, 0x00);
+        private static readonly Color LightCyan = Color.FromRgb(0xC0, 0xFF, 0xFF);
+        private static readonly Color Cyan = Color.FromRgb(0x00, 0xFF, 0xFF);
+        private static readonly Color DarkCyan = Color.FromRgb(0x00, 0xC0, 0xC0);
 
-        public static readonly Color LightCyan = Color.FromRgb(0xC0, 0xFF, 0xFF);
-        public static readonly Color Cyan = Color.FromRgb(0x00, 0xFF, 0xFF);
-        public static readonly Color DarkCyan = Color.FromRgb(0x00, 0xC0, 0xC0);
+        private static readonly Color LightBlue = Color.FromRgb(0xC0, 0xC0, 0xFF);
+        private static readonly Color Blue = Color.FromRgb(0x00, 0x00, 0xFF);
+        private static readonly Color DarkBlue = Color.FromRgb(0x00, 0x00, 0xC0);
 
-        public static readonly Color LightBlue = Color.FromRgb(0xC0, 0xC0, 0xFF);
-        public static readonly Color Blue = Color.FromRgb(0x00, 0x00, 0xFF);
-        public static readonly Color DarkBlue = Color.FromRgb(0x00, 0x00, 0xC0);
+        private static readonly Color LightMagenta = Color.FromRgb(0xFF, 0xC0, 0xFF);
+        private static readonly Color Magenta = Color.FromRgb(0xFF, 0x00, 0xFF);
+        private static readonly Color DarkMagenta = Color.FromRgb(0xC0, 0x00, 0xC0);
 
-        public static readonly Color LightMagenta = Color.FromRgb(0xFF, 0xC0, 0xFF);
-        public static readonly Color Magenta = Color.FromRgb(0xFF, 0x00, 0xFF);
-        public static readonly Color DarkMagenta = Color.FromRgb(0xC0, 0x00, 0xC0);
-
-        public static readonly Color White = Color.FromRgb(0xFF, 0xFF, 0xFF);
-        public static readonly Color Black = Color.FromRgb(0x00, 0x00, 0x00);
+        private static readonly Color White = Color.FromRgb(0xFF, 0xFF, 0xFF);
+        private static readonly Color Black = Color.FromRgb(0x00, 0x00, 0x00);
 
         // Colors <-> Offset
-        public static readonly Color[] Colors =
+        private static readonly Color[] Colors =
         {
             LightRed, LightYellow, LightGreen, LightCyan, LightBlue, LightMagenta,
             Red, Yellow, Green, Cyan, Blue, Magenta,
@@ -48,21 +50,28 @@ namespace Piet
             White, Black
         };
 
-        public static int WhiteIndex = 18;
-        public static int BlackIndex = 19;
-        public static int MarkIndex = 999; // neutral color for fill
-        public static int InvalidIndex = -1;
+        private static readonly string[] ColorsName =
+        {
+            "LightRed", "LightYellow", "LightGreen", "LightCyan", "LightBlue", "LightMagenta",
+            "Red", "Yellow", "Green", "Cyan", "Blue", "Magenta",
+            "DarkRed", "DarkYellow", "DarkGreen", "DarkCyan", "DarkBlue", "DarkMagenta",
+            //
+            "White", "Black"
+        };
+
+        private Func<int, string> ColorIndexToString => idx => idx == 999 ? "Fill" : ( idx == -1 ? "Invalid" : ColorsName[idx]);
+
+        private static int WhiteIndex = 18;
+        private static int BlackIndex = 19;
+        private static int FillIndex = 999; // neutral color for fill
+        private static int InvalidIndex = -1;
 
         // Hue Cycle: Red -> Yellow -> Green -> Cyan -> Blue -> Magenta -> Red
-        public Func<int, int> NextHue => index => (index/6)*6 + (index + 1)%6; // Next column in Colors table
-        public Func<int, int, int> HueDiff => (index1, index2) => (6 + Hue(index2) - Hue(index1)) % 6;
-        public Func<int, int> Hue => index => index < 18 ? index%6 : index;
+        private Func<int, int, int> HueDiff => (index1, index2) => (6 + Hue(index2) - Hue(index1)) % 6;
+        private Func<int, int> Hue => index => index < 18 ? index%6 : index;
         // Lightness Cycle: Light -> Normal -> Dark -> Light
-        public Func<int, int> NextLightness => index => (index + 6)%18;
-        public Func<int, int, int> LightnessDiff => (index1, index2) => (3 + Lightness(index2) - Lightness(index1))%3;
-        public Func<int, int> Lightness => index => index < 18 ? index/6 : index;
-        // Advance Color
-        public Func<int, int, int, int> AdvanceColor => (index, hue, lightness) => (index%6 + hue)%6 + 6*((index/6 + lightness)%3);
+        private Func<int, int, int> LightnessDiff => (index1, index2) => (3 + Lightness(index2) - Lightness(index1))%3;
+        private Func<int, int> Lightness => index => index < 18 ? index/6 : index;
 
         // Codels
         public int CodelsWidth { get; private set; }
@@ -105,11 +114,11 @@ namespace Piet
 
         public CodelChoosers CodelChooser { get; private set; } // aka CC
 
-        public int ToggleCount { get; private set; }
+        private int ToggleCount { get; set; }
 
-        public Func<CodelChoosers, CodelChoosers> ToggleCodelChooser => cc => cc == CodelChoosers.Left ? CodelChoosers.Right : CodelChoosers.Left;
+        private Func<CodelChoosers, CodelChoosers> ToggleCodelChooser => cc => cc == CodelChoosers.Left ? CodelChoosers.Right : CodelChoosers.Left;
 
-        public Func<PointerDirections, PointerDirections> TurnDirectionPointerClockwise => dp =>
+        private Func<PointerDirections, PointerDirections> TurnDirectionPointerClockwise => dp =>
         {
             switch (dp)
             {
@@ -125,7 +134,8 @@ namespace Piet
                     throw new InvalidOperationException($"Invalid PointerDirections:{dp}");
             }
         };
-        public Func<PointerDirections, PointerDirections> TurnDirectionPointerCounterClockwise => dp =>
+
+        private Func<PointerDirections, PointerDirections> TurnDirectionPointerCounterClockwise => dp =>
         {
             switch (dp)
             {
@@ -142,13 +152,19 @@ namespace Piet
             }
         };
 
-        public Func<PointerDirections, int> DirectionX => dp => dp == PointerDirections.Left ? -1 : (dp == PointerDirections.Right ? 1 : 0);
-        public Func<PointerDirections, int> DirectionY => dp => dp == PointerDirections.Up ? -1 : (dp == PointerDirections.Down ? 1 : 0);
+        private Func<PointerDirections, int> DirectionX => dp => dp == PointerDirections.Left ? -1 : (dp == PointerDirections.Right ? 1 : 0);
+        private Func<PointerDirections, int> DirectionY => dp => dp == PointerDirections.Up ? -1 : (dp == PointerDirections.Down ? 1 : 0);
 
         public PietStack Stack { get; private set; }
 
-        public string Output { get; private set; }
-        public Func<string> InputFunc { get; set; }
+        public Action<string> OutputAction { get; }
+        public Func<string> InputFunc { get;  }
+
+        public Interpreter(Func<string> inputFunc, Action<string> outputAction)
+        {
+            InputFunc = inputFunc;
+            OutputAction = outputAction;
+        }
 
         public void Parse(string imageFilename, int codelSize)
         {
@@ -181,8 +197,8 @@ namespace Piet
                 bool canContinue = ExecuteStep(ref codelX, ref codelY);
                 if (!canContinue)
                     break;
-                Debug.WriteLine("Execution ended");
             }
+            Debug.WriteLine("Execution ended");
         }
 
         public BitmapSource GenerateImageFromCodels()
@@ -222,7 +238,7 @@ namespace Piet
             // Max 8 tries
             for (int t = 0; t < 8; t++)
             {
-                Debug.WriteLine($"Try {t} with {codelX},{codelY},{colorIndex}");
+                Debug.WriteLine($"Try {t} with {codelX},{codelY},{ColorIndexToString(colorIndex)} dp:{DirectionPointer} cc:{CodelChooser}");
                 int bestX = codelX, bestY = codelY, codelCount;
                 if (colorIndex == WhiteIndex)
                 {
@@ -233,12 +249,12 @@ namespace Piet
                 {
                     // Search best X, Y
                     codelCount = 0;
-                    bool found = SearchFurthestCodel(codelX, codelY, colorIndex, MarkIndex, ref bestX, ref bestY, ref codelCount);
+                    bool found = SearchFurthestCodel(codelX, codelY, colorIndex, FillIndex, ref bestX, ref bestY, ref codelCount);
                     if (!found)
                         throw new ApplicationException("Internal error");
-                    ResetSearch(codelX, codelY, colorIndex, MarkIndex);
+                    ResetSearch(codelX, codelY, colorIndex, FillIndex);
                     int bestColorIndex = this[bestX, bestY];
-                    Debug.WriteLine($"Best found: dp:{DirectionPointer} cc:{CodelChooser} => from {codelX},{codelY},{colorIndex} to {bestX},{bestY},{bestColorIndex}");
+                    Debug.WriteLine($"Best found: dp:{DirectionPointer} cc:{CodelChooser} => from {codelX},{codelY},{ColorIndexToString(colorIndex)} to {bestX},{bestY},{ColorIndexToString(bestColorIndex)}");
                 }
 
                 // Find adjacent codel to best codel according to DP
@@ -246,7 +262,7 @@ namespace Piet
                 int adjacentY = bestY + DirectionY(DirectionPointer);
                 int adjacentColorIndex = this[adjacentX, adjacentY];
 
-                Debug.WriteLine($"Adjacent: dp:{DirectionPointer} cc: {CodelChooser} => {adjacentX},{adjacentY},{adjacentColorIndex}");
+                Debug.WriteLine($"Adjacent: dp:{DirectionPointer} cc:{CodelChooser} => {adjacentX},{adjacentY},{ColorIndexToString(adjacentColorIndex)}");
 
                 // White block (pass-thru)
                 if (adjacentColorIndex == WhiteIndex)
@@ -256,24 +272,55 @@ namespace Piet
                     // if transition between colored blocks occurs via a slide across a white block, no command is executed
                     while (adjacentColorIndex == WhiteIndex)
                     {
-                        Debug.WriteLine($"White codel passed to {adjacentX},{adjacentY},{adjacentColorIndex}");
+                        Debug.WriteLine($"White codel passed to {adjacentX},{adjacentY},{ColorIndexToString(adjacentColorIndex)}");
                         adjacentX += DirectionX(DirectionPointer);
                         adjacentY += DirectionY(DirectionPointer);
                         adjacentColorIndex = this[adjacentX, adjacentY];
                     }
 
-                    Debug.WriteLine($"White block crossed at {adjacentX},{adjacentY},{adjacentColorIndex}");
+                    Debug.WriteLine($"White block crossed at {adjacentX},{adjacentY},{ColorIndexToString(adjacentColorIndex)}");
 
                     whiteCrossed = true;
+
+                    // code seen in npiet but causes an infinite loop with some programs
                     // black or wall
-                    if (adjacentColorIndex == InvalidIndex || adjacentColorIndex == BlackIndex)
-                    {
-                        // when sliding into a black block or wall, we set white block as the current block
-                        adjacentColorIndex = WhiteIndex;
-                        adjacentX -= DirectionX(DirectionPointer);
-                        adjacentY -= DirectionY(DirectionPointer);
-                        Debug.WriteLine($"Entering white block at {adjacentX},{adjacentY},{adjacentColorIndex}");
-                    }
+                    //if (adjacentColorIndex == InvalidIndex || adjacentColorIndex == BlackIndex)
+                    //{
+                    //    // before clarification of white block behaviour
+                    //    // when sliding into a black block or wall from white, we set white block as the current block
+                    //    adjacentColorIndex = WhiteIndex;
+                    //    adjacentX -= DirectionX(DirectionPointer);
+                    //    adjacentY -= DirectionY(DirectionPointer);
+                    //    Debug.WriteLine($"Entering white block at {adjacentX},{adjacentY},{ColorIndexToString(adjacentColorIndex)}");
+
+                    //    // after clarification of white block behaviour
+                    //    //List<Tuple<int,int, PointerDirections, CodelChoosers>> visited = new List<Tuple<int, int, PointerDirections, CodelChoosers>>();
+                    //    //while (adjacentColorIndex == InvalidIndex || adjacentColorIndex == BlackIndex)
+                    //    //{
+                    //    //    adjacentColorIndex = WhiteIndex;
+                    //    //    adjacentX -= DirectionX(DirectionPointer);
+                    //    //    adjacentY -= DirectionY(DirectionPointer);
+                    //    //    Debug.WriteLine($"Hitting black block when sliding at {adjacentX},{adjacentY},{ColorIndexToString(adjacentColorIndex)} dp:{DirectionPointer} cc:{CodelChooser}");
+                    //    //    //
+                    //    //    CodelChooser = ToggleCodelChooser(CodelChooser);
+                    //    //    DirectionPointer = TurnDirectionPointerClockwise(DirectionPointer);
+                    //    //    //
+                    //    //    foreach(Tuple<int, int, PointerDirections, CodelChoosers> tuple in visited)
+                    //    //        if (tuple.Item1 == adjacentX && tuple.Item2 == adjacentY && tuple.Item3 == DirectionPointer && tuple.Item4 == CodelChooser)
+                    //    //        {
+                    //    //            Debug.WriteLine("Already hit that black/wall => exiting");
+                    //    //            return false;
+                    //    //        }
+                    //    //    visited.Add(new Tuple<int, int, PointerDirections, CodelChoosers>(adjacentX, adjacentY, DirectionPointer, CodelChooser));
+                    //    //    while (adjacentColorIndex == WhiteIndex)
+                    //    //    {
+                    //    //        Debug.WriteLine($"White codel passed to {adjacentX},{adjacentY},{ColorIndexToString(adjacentColorIndex)}");
+                    //    //        adjacentX -= DirectionX(DirectionPointer);
+                    //    //        adjacentY -= DirectionY(DirectionPointer);
+                    //    //        adjacentColorIndex = this[adjacentX, adjacentY];
+                    //    //    }
+                    //    //}
+                    //}
                 }
 
                 // Black or wall
@@ -292,20 +339,20 @@ namespace Piet
                         // Toggle DP or CC
                         if (ToggleCount%2 == 0)
                         {
-                            Debug.WriteLine("Currently not in white => toggle CC");
                             CodelChooser = ToggleCodelChooser(CodelChooser);
+                            Debug.WriteLine($"Currently not in white => toggle CC: {CodelChooser}");
                         }
                         else
                         {
-                            Debug.WriteLine("Currently not in white => turn DP");
                             DirectionPointer = TurnDirectionPointerClockwise(DirectionPointer);
+                            Debug.WriteLine($"Currently not in white => turn DP: {DirectionPointer}");
                         }
                         ToggleCount++;
                     }
                 }
                 else
                 {
-                    Debug.WriteLine($"{codelX},{codelY},{colorIndex} => {adjacentX},{adjacentY},{adjacentColorIndex}  codel count:{codelCount}");
+                    Debug.WriteLine($"instruction? {codelX},{codelY},{ColorIndexToString(colorIndex)} => {adjacentX},{adjacentY},{ColorIndexToString(adjacentColorIndex)}  codel count:{codelCount}");
 
 
                     if (whiteCrossed)
@@ -322,6 +369,8 @@ namespace Piet
                     return true;
                 }
             }
+
+            Debug.WriteLine("8 tries done. no more step allowed");
 
             return false;
         }
@@ -341,7 +390,7 @@ namespace Piet
             int hueDiff = HueDiff(fromColorIndex, toColorIndex);
             int lightnessDiff = LightnessDiff(fromColorIndex, toColorIndex);
 
-            Debug.WriteLine($"Action: Hue:{hueDiff} Lightness:{lightnessDiff}");
+            Debug.WriteLine($"PerformInstruction: From{ColorIndexToString(fromColorIndex)} to {ColorIndexToString(toColorIndex)} => Hue:{hueDiff} Lightness:{lightnessDiff}");
 
             switch (hueDiff)
             {
@@ -483,7 +532,7 @@ namespace Piet
                                 else
                                 {
                                     absOperand = -absOperand;
-                                    func = TurnDirectionPointerClockwise;
+                                    func = TurnDirectionPointerCounterClockwise;
                                 }
                                 for (int i = 0; i < absOperand % 4; i++)
                                     DirectionPointer = func(DirectionPointer);
@@ -543,7 +592,7 @@ namespace Piet
                                 Debug.WriteLine($"Action: IN NUMBER failed: invalid input {inputAsString}");
                             else
                             {
-                                Debug.WriteLine($"Action: IN NUMBER({inputNumber}");
+                                Debug.WriteLine($"Action: IN NUMBER({inputNumber})");
                                 Stack.Push(inputNumber);
                             }
                             break;
@@ -572,7 +621,7 @@ namespace Piet
                             {
                                 int operand = Stack.Pop();
                                 Debug.WriteLine($"Action: OUT NUMBER({operand})");
-                                Output += operand;
+                                OutputAction?.Invoke(operand.ToString());
                             }
                             break;
                         case 2: // Out char
@@ -584,7 +633,7 @@ namespace Piet
                                 int outputAsInt = Stack.Pop();
                                 char operand = (char) (outputAsInt%255);
                                 Debug.WriteLine($"Action: OUT CHAR({operand})");
-                                Output += operand;
+                                OutputAction?.Invoke(operand.ToString());
                             }
                             break;
                     }
@@ -593,15 +642,15 @@ namespace Piet
         }
 
         // Search furthest codel in current codel color region
-        private bool SearchFurthestCodel(int x, int y, int currentColorIndex, int markColorIndex, ref int bestX, ref int bestY, ref int codelCount)
+        private bool SearchFurthestCodel(int x, int y, int currentColorIndex, int fillColorIndex, ref int bestX, ref int bestY, ref int codelCount)
         {
             // Use a simple recursive fill algorithm with a neutral color (markColorIndex)
             int color = this[x, y];
-            if (color == InvalidIndex || color != currentColorIndex || color == markColorIndex)
+            if (color == InvalidIndex || color != currentColorIndex || color == fillColorIndex)
                 // invalid codel reached
                 return false;
 
-            Debug.WriteLine($"Fill: {x},{y},{color}");
+            //Debug.WriteLine($"Fill: {x},{y},{ColorIndexToString(color)}");
 
             // check if codel is the furthest according db/cc direction
             // DP       CC      Codel
@@ -637,39 +686,39 @@ namespace Piet
 
             if (found)
             {
-                Debug.WriteLine($"New best: dp:{DirectionPointer} cc:{CodelChooser}    {bestX},{bestY},{this[bestX, bestY]} => {x},{y},{color}");
+                //Debug.WriteLine($"New best: dp:{DirectionPointer} cc:{CodelChooser}    {bestX},{bestY},{this[bestX, bestY]} => {x},{y},{ColorIndexToString(color)}");
                 bestX = x;
                 bestY = y;
             }
 
-            this[x, y] = markColorIndex; // set to mark color
+            this[x, y] = fillColorIndex; // set to mark color
 
             // one mode codel found in this color block
             codelCount++;
 
             // Recursive call on neighbourhood
-            SearchFurthestCodel(x + 1, y, currentColorIndex, markColorIndex, ref bestX, ref bestY, ref codelCount); // right
-            SearchFurthestCodel(x, y + 1, currentColorIndex, markColorIndex, ref bestX, ref bestY, ref codelCount); // down
-            SearchFurthestCodel(x - 1, y, currentColorIndex, markColorIndex, ref bestX, ref bestY, ref codelCount); // left
-            SearchFurthestCodel(x, y - 1, currentColorIndex, markColorIndex, ref bestX, ref bestY, ref codelCount); // up
+            SearchFurthestCodel(x + 1, y, currentColorIndex, fillColorIndex, ref bestX, ref bestY, ref codelCount); // right
+            SearchFurthestCodel(x, y + 1, currentColorIndex, fillColorIndex, ref bestX, ref bestY, ref codelCount); // down
+            SearchFurthestCodel(x - 1, y, currentColorIndex, fillColorIndex, ref bestX, ref bestY, ref codelCount); // left
+            SearchFurthestCodel(x, y - 1, currentColorIndex, fillColorIndex, ref bestX, ref bestY, ref codelCount); // up
 
             return true;
         }
 
-        private bool ResetSearch(int x, int y, int originalColorIndex, int markColorIndex)
+        private bool ResetSearch(int x, int y, int originalColorIndex, int fillColorIndex)
         {
             int color = this[x, y];
-            if (color == InvalidIndex || color == originalColorIndex || color != markColorIndex)
+            if (color == InvalidIndex || color == originalColorIndex || color != fillColorIndex)
                 // invalid codel reached
                 return false;
             // set original color
             this[x, y] = originalColorIndex;
 
             // Recursive call on neighbourhood
-            ResetSearch(x + 1, y, originalColorIndex, markColorIndex); // right
-            ResetSearch(x, y + 1, originalColorIndex, markColorIndex); // down
-            ResetSearch(x - 1, y, originalColorIndex, markColorIndex); // left
-            ResetSearch(x, y - 1, originalColorIndex, markColorIndex); // up
+            ResetSearch(x + 1, y, originalColorIndex, fillColorIndex); // right
+            ResetSearch(x, y + 1, originalColorIndex, fillColorIndex); // down
+            ResetSearch(x - 1, y, originalColorIndex, fillColorIndex); // left
+            ResetSearch(x, y - 1, originalColorIndex, fillColorIndex); // up
 
             return true;
         }

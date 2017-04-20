@@ -6,6 +6,8 @@ using Brainfuck.Instructions;
 namespace Brainfuck
 {
     //https://en.wikipedia.org/wiki/Brainfuck
+    //https://esolangs.org/wiki/Brainfuck_algorithms
+    //https://esolangs.org/wiki/Brainfuck_constants
     class Program
     {
         //http://calmerthanyouare.org/2015/01/07/optimizing-brainfuck.html

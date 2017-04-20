@@ -8,7 +8,6 @@ using Brainfuck.Instructions;
 namespace Brainfuck
 {
     // TODO: store position in original program (2 positions when instructions are merged)
-    // TODO: OptimizeXXX should not modify its input
     public class BrainfuckInterpreterOptimized
     {
         public void Execute(List<InstructionBase> instructions)
@@ -346,7 +345,7 @@ namespace Brainfuck
                 Debug.WriteLine($"Optimizable block detected at position {i} => {j}");
                 // copy instructions before block
                 optimized.AddRange(instructions.Skip(previousI).Take(i - previousI));
-                // interpret block and track what arithmetic operations are applied to each offset, as aoon a non-arithmetic operation is encoutered, we dump the arithmetic operations performed on that offset followed by non-arithmetic operation
+                // interpret block and track what arithmetic operations are applied to each offset, as soon a non-arithmetic operation is encoutered, we dump the arithmetic operations performed on that offset followed by non-arithmetic operation
                 List<InstructionBase> blockInstructions = instructions.Skip(i).Take(j - i).ToList();
                 Dictionary<int, int> memValue = new Dictionary<int, int>();
                 Dictionary<int, bool> memOperation = new Dictionary<int, bool>(); // true: ADD/SUB  false: ASSIGN (CLEAR + ADD/SUB)

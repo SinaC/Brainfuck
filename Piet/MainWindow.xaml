@@ -11,7 +11,14 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBlock x:Name="OutputTextBlock"/>
+        <StackPanel Grid.Row="0"
+                    Orientation="Horizontal">
+            <Button Click="ButtonBase_OnClick"
+                    Width="100">
+                <TextBlock Text="Run"/>
+            </Button>
+            <TextBlock Height="32" x:Name="OutputTextBlock"/>
+        </StackPanel>
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>

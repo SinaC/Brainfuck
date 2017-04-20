@@ -76,7 +76,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="NaiveInterpreter.cs" />
+    <Compile Include="Interpreter.cs" />
     <Compile Include="PietStack.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
@@ -104,7 +104,10 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Resource Include="Programs\helloworld-pietbig.gif" />
+    <Resource Include="Programs\primetest2.png" />
+  </ItemGroup>
   <ItemGroup>
     <Resource Include="Programs\hello-medium.png" />
     <Resource Include="Programs\nprime.gif" />

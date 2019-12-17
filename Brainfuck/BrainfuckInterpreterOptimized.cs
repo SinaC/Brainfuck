@@ -17,15 +17,20 @@ namespace Brainfuck
             for (int instructionPtr = 0; instructionPtr < instructions.Count; instructionPtr++)
             {
                 InstructionBase instruction = instructions[instructionPtr];
-                if (instruction is OpenInstruction)
-                    loopStack.Push(instructionPtr); // save OpenInstructionPtr, will be set later
-                else if (instruction is CloseInstruction)
+                switch (instruction)
                 {
-                    if (loopStack.Count == 0)
+                    case OpenInstruction _:
+                        loopStack.Push(instructionPtr); // save OpenInstructionPtr, will be set later
+                        break;
+                    case CloseInstruction _ when loopStack.Count == 0:
                         throw new InvalidOperationException($"Unmatched CloseInstruction at position {instructionPtr}.");
-                    int loopStartPtr = loopStack.Pop();
-                    ((CloseInstruction)instruction).OpenInstructionPtr = loopStartPtr; // set OpenInstructionPtr to previously saved ptr
-                    ((OpenInstruction)instructions[loopStartPtr]).CloseInstructionPtr = instructionPtr; // set CloseInstructionPtr to current ptr
+                    case CloseInstruction closeInstruction:
+                    {
+                        int loopStartPtr = loopStack.Pop();
+                        closeInstruction.OpenInstructionPtr = loopStartPtr; // set OpenInstructionPtr to previously saved ptr
+                        ((OpenInstruction)instructions[loopStartPtr]).CloseInstructionPtr = instructionPtr; // set CloseInstructionPtr to current ptr
+                        break;
+                    }
                 }
             }
             if (loopStack.Count > 0)
@@ -132,7 +137,6 @@ namespace Brainfuck
             return sb.ToString();
         }
 
-
         // Replace clear loop [-] with single instruction
         public List<InstructionBase> OptimizeClearLoop(List<InstructionBase> instructions)
         {
@@ -147,7 +151,7 @@ namespace Brainfuck
                     SubInstruction sub = instructions[i + 1] as SubInstruction;
                     if (sub?.X == 1 && sub.Offset == 0 && instructions[i + 2] is CloseInstruction)
                     {
-                        Debug.WriteLine($"Clear loop found");
+                        Debug.WriteLine("Clear loop found");
                         optimizationFound = true;
                         optimized.Add(new ClearInstruction());
                         i += 2;
@@ -174,7 +178,7 @@ namespace Brainfuck
                     LeftInstruction left = instructions[i + 1] as LeftInstruction;
                     if (left?.X == 1 && instructions[i + 2] is CloseInstruction)
                     {
-                        Debug.WriteLine($"Left scan loop found");
+                        Debug.WriteLine("Left scan loop found");
                         optimizationFound = true;
                         optimized.Add(new ScanLeftInstruction());
                         i += 2;
@@ -184,7 +188,7 @@ namespace Brainfuck
                         RightInstruction right = instructions[i + 1] as RightInstruction;
                         if (right?.X == 1 && instructions[i + 2] is CloseInstruction)
                         {
-                            Debug.WriteLine($"Right scan loop found");
+                            Debug.WriteLine("Right scan loop found");
                             optimizationFound = true;
                             optimized.Add(new ScanRightInstruction());
                             i += 2;
@@ -257,30 +261,29 @@ namespace Brainfuck
                 // interpret loop and track pointer position and what arithmetic operations it carries out
                 Dictionary<int, int> mem = new Dictionary<int, int>();
                 int p = 0;
-                foreach (InstructionBase instruction in loopInstructions)
+                foreach (InstructionBase instruction in loopInstructions) // contains only Add/Sub/Left/Right
                 {
-                    if (instruction is AddInstruction)
+                    switch (instruction)
                     {
-                        AddInstruction add = (AddInstruction) instruction;
-                        mem[p+add.Offset] = mem.Get(p + add.Offset, 0) + add.X;
-                    }
-                    else if (instruction is SubInstruction)
-                    {
-                        SubInstruction sub = (SubInstruction) instruction;
-                        mem[p + sub.Offset] = mem.Get(p + sub.Offset, 0) - sub.X;
-                    }
-                    else if (instruction is LeftInstruction)
-                    {
-                        LeftInstruction left = (LeftInstruction) instruction;
-                        p -= left.X;
-                    }
-                    else // Right
-                    {
-                        RightInstruction right = (RightInstruction) instruction;
-                        p += right.X;
+                        // Add
+                        case AddInstruction add:
+                            mem[p+add.Offset] = mem.Get(p + add.Offset, 0) + add.X;
+                            break;
+                        // Sub
+                        case SubInstruction sub:
+                            mem[p + sub.Offset] = mem.Get(p + sub.Offset, 0) - sub.X;
+                            break;
+                        // Left
+                        case LeftInstruction left:
+                            p -= left.X;
+                            break;
+                        // Right
+                        case RightInstruction right:
+                            p += right.X;
+                            break;
                     }
                 }
-                // if pointed ended where it started and we substracted exactly 1 from cell 0, then loop can be replaced with copy/mul instruction
+                // if pointed ended where it started and we subtracted exactly 1 from cell 0, then loop can be replaced with copy/mul instruction
                 if (p != 0 || mem.Get(0, 0) != -1) // not a copy/mul instruction
                 {
                     optimized.AddRange(instructions.Skip(i).Take(j - i + 1)); // copy loop instructions
@@ -345,39 +348,34 @@ namespace Brainfuck
                 Debug.WriteLine($"Optimizable block detected at position {i} => {j}");
                 // copy instructions before block
                 optimized.AddRange(instructions.Skip(previousI).Take(i - previousI));
-                // interpret block and track what arithmetic operations are applied to each offset, as soon a non-arithmetic operation is encoutered, we dump the arithmetic operations performed on that offset followed by non-arithmetic operation
+                // interpret block and track what arithmetic operations are applied to each offset, as soon a non-arithmetic operation is encountered, we dump the arithmetic operations performed on that offset followed by non-arithmetic operation
                 List<InstructionBase> blockInstructions = instructions.Skip(i).Take(j - i).ToList();
                 Dictionary<int, int> memValue = new Dictionary<int, int>();
                 Dictionary<int, bool> memOperation = new Dictionary<int, bool>(); // true: ADD/SUB  false: ASSIGN (CLEAR + ADD/SUB)
                 int p = 0;
                 foreach (InstructionBase instruction in blockInstructions)
                 {
-                    if (instruction is AddInstruction)
+                    if (instruction is AddInstruction add)
                     {
-                        AddInstruction add = (AddInstruction)instruction;
                         memValue[p + add.Offset] = memValue.Get(p + add.Offset, 0) + add.X;
                         memOperation[p + add.Offset] = memOperation.Get(p + add.Offset, true); // keep existing value or set true (ADD/SUB) by default
                     }
-                    else if (instruction is SubInstruction)
+                    else if (instruction is SubInstruction sub)
                     {
-                        SubInstruction sub = (SubInstruction)instruction;
                         memValue[p + sub.Offset] = memValue.Get(p + sub.Offset, 0) - sub.X;
                         memOperation[p + sub.Offset] = memOperation.Get(p + sub.Offset, true); // keep existing value or set true (ADD/SUB) by default
                     }
-                    else if (instruction is ClearInstruction)
+                    else if (instruction is ClearInstruction clear)
                     {
-                        ClearInstruction clear = (ClearInstruction) instruction;
                         memValue[p + clear.Offset] = 0;
                         memOperation[p + clear.Offset] = false; // set false (ASSIGN)
                     }
-                    else if (instruction is LeftInstruction)
+                    else if (instruction is LeftInstruction left)
                     {
-                        LeftInstruction left = (LeftInstruction) instruction;
                         p -= left.X;
                     }
-                    else if (instruction is RightInstruction)
+                    else if (instruction is RightInstruction right)
                     {
-                        RightInstruction right = (RightInstruction) instruction;
                         p += right.X;
                     }
                     else if (instruction is InInstruction || instruction is OutInstruction) // If in/out is encountered, we have to stop Add/Sub merging because value will be used

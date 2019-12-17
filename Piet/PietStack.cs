@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Linq;
 
 namespace Piet
 {
     // Don't use framework Stack because Roll operation is 'hard' to implement properly.
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public class PietStack
     {
         private const int StackSize = 65536;
@@ -44,7 +47,7 @@ namespace Piet
                     int value = _stack[_topIndex];
                     for (int j = 0; j < depth - 1; j++)
                         _stack[_topIndex - j] = _stack[_topIndex - j - 1];
-                    _stack[_topIndex - depth+1] = value;
+                    _stack[_topIndex - depth + 1] = value;
                 }
             }
             else
@@ -52,12 +55,16 @@ namespace Piet
                 count = -count;
                 for (int i = 0; i < count; i++)
                 {
-                    int value = _stack[_topIndex - depth+1];
+                    int value = _stack[_topIndex - depth + 1];
                     for (int j = 0; j < depth - 1; j++)
-                        _stack[_topIndex - depth + j+1] = _stack[_topIndex-depth+j+2];
+                        _stack[_topIndex - depth + j + 1] = _stack[_topIndex - depth + j + 2];
                     _stack[_topIndex] = value;
                 }
             }
         }
+
+        private string DebuggerDisplay => _topIndex == -1 
+            ? "/" 
+            : string.Join(",", _stack.Take(_topIndex + 1).Select(x => x.ToString()));
     }
 }

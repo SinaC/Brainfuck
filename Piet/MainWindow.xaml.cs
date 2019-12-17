@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -62,6 +61,7 @@ namespace Piet
             }
             catch (Exception ex)
             {
+                OutputTextBlock.Text = $"Exception: {ex}";
             }
         }
 

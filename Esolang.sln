@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26430.15
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Brainfuck", "Brainfuck\Brainfuck.csproj", "{782F0B70-5745-49A9-A62B-A3A55EC31002}"
 EndProject
@@ -10,6 +10,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Malbolge", "Malbolge\Malbolge.csproj", "{7A32A94B-1A05-4D67-9FAC-14CA3D5D7373}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Befunge", "Befunge\Befunge.csproj", "{D4E52693-FC6F-4A59-8EB7-5B856F82582B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Thue", "Thue\Thue.csproj", "{C216EA05-604C-4845-99F9-2621A425A267}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,8 +35,15 @@ Global
 		{D4E52693-FC6F-4A59-8EB7-5B856F82582B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D4E52693-FC6F-4A59-8EB7-5B856F82582B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D4E52693-FC6F-4A59-8EB7-5B856F82582B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C216EA05-604C-4845-99F9-2621A425A267}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C216EA05-604C-4845-99F9-2621A425A267}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C216EA05-604C-4845-99F9-2621A425A267}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C216EA05-604C-4845-99F9-2621A425A267}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C0F2E384-F226-4FEE-B5F5-928D34EFC116}
 	EndGlobalSection
 EndGlobal

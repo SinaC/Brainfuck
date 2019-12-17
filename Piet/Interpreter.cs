@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -16,7 +14,7 @@ namespace Piet
         private static readonly Color LightRed = Color.FromRgb(0xFF, 0xC0, 0xC0);
         private static readonly Color Red = Color.FromRgb(0xFF, 0x00, 0x00);
         private static readonly Color DarkRed = Color.FromRgb(0xC0, 0x00, 0x00);
-        
+
         private static readonly Color LightYellow = Color.FromRgb(0xFF, 0xFF, 0xC0);
         private static readonly Color Yellow = Color.FromRgb(0xFF, 0xFF, 0x00);
         private static readonly Color DarkYellow = Color.FromRgb(0xC0, 0xC0, 0x00);
@@ -59,7 +57,9 @@ namespace Piet
             "White", "Black"
         };
 
-        private Func<int, string> ColorIndexToString => idx => idx == 999 ? "Fill" : ( idx == -1 ? "Invalid" : ColorsName[idx]);
+        private Func<int, string> ColorIndexToString => idx => idx == 999
+            ? "Fill"
+            : (idx == -1 ? "Invalid" : ColorsName[idx]);
 
         private static int WhiteIndex = 18;
         private static int BlackIndex = 19;
@@ -67,11 +67,18 @@ namespace Piet
         private static int InvalidIndex = -1;
 
         // Hue Cycle: Red -> Yellow -> Green -> Cyan -> Blue -> Magenta -> Red
-        private Func<int, int, int> HueDiff => (index1, index2) => (6 + Hue(index2) - Hue(index1)) % 6;
-        private Func<int, int> Hue => index => index < 18 ? index%6 : index;
+        private Func<int, int, int> HueDiff => (index1, index2) => (6 + Hue(index2) - Hue(index1))%6;
+
+        private Func<int, int> Hue => index => index < 18
+            ? index%6
+            : index;
+
         // Lightness Cycle: Light -> Normal -> Dark -> Light
         private Func<int, int, int> LightnessDiff => (index1, index2) => (3 + Lightness(index2) - Lightness(index1))%3;
-        private Func<int, int> Lightness => index => index < 18 ? index/6 : index;
+
+        private Func<int, int> Lightness => index => index < 18
+            ? index/6
+            : index;
 
         // Codels
         public int CodelsWidth { get; private set; }
@@ -91,7 +98,7 @@ namespace Piet
             {
                 if (x < 0 || x >= CodelsWidth || y < 0 || y >= CodelsHeight)
                     throw new ArgumentOutOfRangeException();
-                int index = x + y * CodelsWidth;
+                int index = x + y*CodelsWidth;
                 Codels[index] = value;
             }
         }
@@ -104,6 +111,7 @@ namespace Piet
             Left,
             Up
         }
+
         public PointerDirections DirectionPointer { get; private set; } // aka DP
 
         public enum CodelChoosers
@@ -116,7 +124,9 @@ namespace Piet
 
         private int ToggleCount { get; set; }
 
-        private Func<CodelChoosers, CodelChoosers> ToggleCodelChooser => cc => cc == CodelChoosers.Left ? CodelChoosers.Right : CodelChoosers.Left;
+        private Func<CodelChoosers, CodelChoosers> ToggleCodelChooser => cc => cc == CodelChoosers.Left
+            ? CodelChoosers.Right
+            : CodelChoosers.Left;
 
         private Func<PointerDirections, PointerDirections> TurnDirectionPointerClockwise => dp =>
         {
@@ -124,11 +134,11 @@ namespace Piet
             {
                 case PointerDirections.Right:
                     return PointerDirections.Down;
-                    case PointerDirections.Down:
+                case PointerDirections.Down:
                     return PointerDirections.Left;
-                    case PointerDirections.Left:
+                case PointerDirections.Left:
                     return PointerDirections.Up;
-                    case PointerDirections.Up:
+                case PointerDirections.Up:
                     return PointerDirections.Right;
                 default:
                     throw new InvalidOperationException($"Invalid PointerDirections:{dp}");
@@ -152,13 +162,22 @@ namespace Piet
             }
         };
 
-        private Func<PointerDirections, int> DirectionX => dp => dp == PointerDirections.Left ? -1 : (dp == PointerDirections.Right ? 1 : 0);
-        private Func<PointerDirections, int> DirectionY => dp => dp == PointerDirections.Up ? -1 : (dp == PointerDirections.Down ? 1 : 0);
+        private Func<PointerDirections, int> DirectionX => dp => dp == PointerDirections.Left
+            ? -1
+            : (dp == PointerDirections.Right
+                ? 1
+                : 0);
+
+        private Func<PointerDirections, int> DirectionY => dp => dp == PointerDirections.Up
+            ? -1
+            : (dp == PointerDirections.Down
+                ? 1
+                : 0);
 
         public PietStack Stack { get; private set; }
 
         public Action<string> OutputAction { get; }
-        public Func<string> InputFunc { get;  }
+        public Func<string> InputFunc { get; }
 
         public Interpreter(Func<string> inputFunc, Action<string> outputAction)
         {
@@ -171,8 +190,8 @@ namespace Piet
             // Read image and extract color as byte array
             BitmapImage img = new BitmapImage(new Uri(imageFilename, UriKind.Absolute));
 
-            Debug.Assert(img.PixelWidth % codelSize == 0);
-            Debug.Assert(img.PixelHeight % codelSize == 0);
+            Debug.Assert(img.PixelWidth%codelSize == 0);
+            Debug.Assert(img.PixelHeight%codelSize == 0);
 
             if (img.Format == PixelFormats.Indexed8)
                 ParseIndexed8(img, codelSize);
@@ -212,7 +231,9 @@ namespace Piet
                 {
                     int codelsIndex = y*CodelsWidth + x;
                     int colorIndex = Codels[codelsIndex];
-                    Color color = colorIndex > 0 && colorIndex < Colors.Length ? Colors[colorIndex] : System.Windows.Media.Colors.HotPink;
+                    Color color = colorIndex > 0 && colorIndex < Colors.Length
+                        ? Colors[colorIndex]
+                        : System.Windows.Media.Colors.HotPink;
                     byteArray[byteArrayIndex] = color.B;
                     byteArray[byteArrayIndex + 1] = color.G;
                     byteArray[byteArrayIndex + 2] = color.R;
@@ -374,7 +395,7 @@ namespace Piet
 
             return false;
         }
-        
+
         /*
          *       Lightness
          * Hue   0         1           2
@@ -385,6 +406,7 @@ namespace Piet
          * 4    dup       roll        in number
          * 5    in char   out number  out char
         */
+
         private void PerformInstruction(int fromColorIndex, int toColorIndex, int codelCount)
         {
             int hueDiff = HueDiff(fromColorIndex, toColorIndex);
@@ -420,42 +442,15 @@ namespace Piet
                     {
                         case 0: // Add
                             // Pop 2 values, add them and push back result
-                            if (Stack.Count < 2)
-                                Debug.WriteLine("Action: ADD failed: stack underflow");
-                            else
-                            {
-                                int operand2 = Stack.Pop();
-                                int operand1 = Stack.Pop();
-                                int result = operand1 + operand2;
-                                Debug.WriteLine($"Action: ADD({operand1},{operand2})={result}");
-                                Stack.Push(result);
-                            }
+                            PerformMathOperation('+');
                             break;
                         case 1: // Sub
                             // Pop 2 values, sub (top from second top) them and push back result
-                            if (Stack.Count < 2)
-                                Debug.WriteLine("Action: SUB failed: stack underflow");
-                            else
-                            {
-                                int operand2 = Stack.Pop();
-                                int operand1 = Stack.Pop();
-                                int result = operand1 - operand2;
-                                Debug.WriteLine($"Action: SUB({operand1},{operand2})={result}");
-                                Stack.Push(result);
-                            }
+                            PerformMathOperation('-');
                             break;
                         case 2: // Mul
                             // Pop 2 values, multiply them and push back result
-                            if (Stack.Count < 2)
-                                Debug.WriteLine("Action: MUL failed: stack underflow");
-                            else
-                            {
-                                int operand2 = Stack.Pop();
-                                int operand1 = Stack.Pop();
-                                int result = operand1 * operand2;
-                                Debug.WriteLine($"Action: MUL({operand1},{operand2})={result}");
-                                Stack.Push(result);
-                            }
+                            PerformMathOperation('*');
                             break;
                     }
                     break;
@@ -464,29 +459,11 @@ namespace Piet
                     {
                         case 0: // Div
                             // Pop 2 values, divide (second top by top) them and push back result
-                            if (Stack.Count < 2)
-                                Debug.WriteLine("Action: DIV failed: stack underflow");
-                            else
-                            {
-                                int operand2 = Stack.Pop();
-                                int operand1 = Stack.Pop();
-                                int result = operand1 / operand2;
-                                Debug.WriteLine($"Action: DIV({operand1},{operand2})={result}");
-                                Stack.Push(result);
-                            }
+                            PerformMathOperation('/');
                             break;
                         case 1: // Mod
                             // Pop 2 values, mod (second top modulo top) them and push back result
-                            if (Stack.Count < 2)
-                                Debug.WriteLine("Action: MOD failed: stack underflow");
-                            else
-                            {
-                                int operand2 = Stack.Pop();
-                                int operand1 = Stack.Pop();
-                                int result = operand1 % operand2;
-                                Debug.WriteLine($"Action: MOD({operand1},{operand2})={result}");
-                                Stack.Push(result);
-                            }
+                            PerformMathOperation('%');
                             break;
                         case 2: // Not
                             // Pop 1 value, not (0->1, 0 otherwise) it and push back result
@@ -495,7 +472,9 @@ namespace Piet
                             else
                             {
                                 int operand = Stack.Pop();
-                                int result = operand == 0 ? 1 : 0;
+                                int result = operand == 0 
+                                    ? 1 
+                                    : 0;
                                 Debug.WriteLine($"Action: NOT({operand})={result}");
                                 Stack.Push(result);
                             }
@@ -513,7 +492,9 @@ namespace Piet
                             {
                                 int operand2 = Stack.Pop();
                                 int operand1 = Stack.Pop();
-                                int result = operand1 > operand2 ? 1 : 0;
+                                int result = operand1 > operand2
+                                    ? 1
+                                    : 0;
                                 Debug.WriteLine($"Action: GREATER({operand1},{operand2})={result}");
                                 Stack.Push(result);
                             }
@@ -534,7 +515,7 @@ namespace Piet
                                     absOperand = -absOperand;
                                     func = TurnDirectionPointerCounterClockwise;
                                 }
-                                for (int i = 0; i < absOperand % 4; i++)
+                                for (int i = 0; i < absOperand%4; i++)
                                     DirectionPointer = func(DirectionPointer);
                                 Debug.WriteLine($"Action: POINTER({operand})={DirectionPointer}");
                             }
@@ -546,7 +527,7 @@ namespace Piet
                             else
                             {
                                 int operand = Stack.Pop();
-                                for (int i = 0; i < operand % 4; i++)
+                                for (int i = 0; i < operand%4; i++)
                                     CodelChooser = ToggleCodelChooser(CodelChooser);
                                 Debug.WriteLine($"Action: SWITCH({operand})={CodelChooser}");
                             }
@@ -608,7 +589,7 @@ namespace Piet
                                 Debug.WriteLine("Action: IN CHAR failed: null or empty input");
                             else
                             {
-                                int inputChar = inputAsString[0] % 255;
+                                int inputChar = inputAsString[0]%255;
                                 Debug.WriteLine($"Action: IN CHAR({inputChar})");
                                 Stack.Push(inputChar);
                             }
@@ -638,6 +619,35 @@ namespace Piet
                             break;
                     }
                     break;
+            }
+        }
+
+        private static readonly IDictionary<char, Tuple<string, Func<int, int, int>>> MathInstructions = new Dictionary<char, Tuple<string, Func<int, int, int>>>
+        {
+            {'+', new Tuple<string, Func<int, int, int>>("ADD", (i1, i2) => i1 + i2)},
+            {'-', new Tuple<string, Func<int, int, int>>("SUB", (i1, i2) => i1 - i2)},
+            {'*', new Tuple<string, Func<int, int, int>>("MUL", (i1, i2) => i1*i2)},
+            {'/', new Tuple<string, Func<int, int, int>>("DIV", (i1, i2) => i1/i2)},
+            {'%', new Tuple<string, Func<int, int, int>>("MOD", (i1, i2) => i1%i2)},
+        };
+
+        private void PerformMathOperation(char instruction)
+        {
+            Tuple<string, Func<int, int, int>> mathInstruction;
+            if (!MathInstructions.TryGetValue(instruction, out mathInstruction))
+                throw new InvalidOperationException($"Unknown mathematical operation:{instruction}");
+
+            if (Stack.Count < 2)
+                Debug.WriteLine($"Action: {mathInstruction.Item1} failed: stack underflow");
+            else
+            {
+
+                int operand2 = Stack.Pop();
+                int operand1 = Stack.Pop();
+                int result = mathInstruction.Item2(operand1, operand2);
+
+                Debug.WriteLine($"Action: {mathInstruction.Item1}({operand1},{operand2})={result}");
+                Stack.Push(result);
             }
         }
 
@@ -673,7 +683,7 @@ namespace Piet
                 if ((y > bestY) || (CodelChooser == CodelChoosers.Left && x > bestX) || (CodelChooser == CodelChoosers.Right && x < bestX))
                     found = true;
             }
-            else if(DirectionPointer == PointerDirections.Left && x <= bestX) // left
+            else if (DirectionPointer == PointerDirections.Left && x <= bestX) // left
             {
                 if ((x < bestX) || (CodelChooser == CodelChoosers.Left && y > bestY) || (CodelChooser == CodelChoosers.Right && y < bestY))
                     found = true;
@@ -734,15 +744,15 @@ namespace Piet
             byte[] pixels = new byte[size];
             img.CopyPixels(pixels, stride, 0);
             // Create codels
-            CodelsWidth = img.PixelWidth/ codelSize;
-            CodelsHeight = img.PixelHeight/ codelSize;
-            int codelsSize = CodelsWidth * CodelsHeight;
+            CodelsWidth = img.PixelWidth/codelSize;
+            CodelsHeight = img.PixelHeight/codelSize;
+            int codelsSize = CodelsWidth*CodelsHeight;
             Codels = new int[codelsSize];
             int codelOffset = 0;
-            for(int y = 0; y < img.PixelHeight; y+=codelSize)
+            for (int y = 0; y < img.PixelHeight; y += codelSize)
                 for (int x = 0; x < img.PixelWidth; x += codelSize)
                 {
-                    int pixelOffset = x * bytesPerPixel + y * stride;
+                    int pixelOffset = x*bytesPerPixel + y*stride;
                     byte pixelColorIndex = pixels[pixelOffset];
                     Color pixelColor = img.Palette.Colors[pixelColorIndex];
                     byte b = pixelColor.B;
@@ -750,7 +760,7 @@ namespace Piet
                     byte r = pixelColor.R;
                     int colorIndex = Array.FindIndex(Colors, c => c.R == r && c.B == b && c.G == g);
                     Codels[codelOffset] = colorIndex == -1
-                        ? WhiteIndex 
+                        ? WhiteIndex
                         : colorIndex;
                     codelOffset++;
                 }
@@ -758,16 +768,16 @@ namespace Piet
 
         private void ParseBgr32(BitmapImage img, int codelSize)
         {
-            int bytesPerPixel = img.Format.BitsPerPixel / 8;
+            int bytesPerPixel = img.Format.BitsPerPixel/8;
             Debug.Assert(bytesPerPixel == 4);
-            int stride = img.PixelWidth * bytesPerPixel;
-            int size = img.PixelHeight * stride;
+            int stride = img.PixelWidth*bytesPerPixel;
+            int size = img.PixelHeight*stride;
             byte[] pixels = new byte[size];
             img.CopyPixels(pixels, stride, 0);
             // Create codels
-            CodelsWidth = img.PixelWidth / codelSize;
-            CodelsHeight = img.PixelHeight / codelSize;
-            int codelsSize = CodelsWidth * CodelsHeight;
+            CodelsWidth = img.PixelWidth/codelSize;
+            CodelsHeight = img.PixelHeight/codelSize;
+            int codelsSize = CodelsWidth*CodelsHeight;
             Codels = new int[codelsSize];
             int codelOffset = 0;
             for (int y = 0; y < img.PixelHeight; y += codelSize)

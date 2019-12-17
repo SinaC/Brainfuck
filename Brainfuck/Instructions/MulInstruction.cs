@@ -10,9 +10,9 @@ namespace Brainfuck.Instructions
         public override void Execute(byte[] memory, ref int memoryPtr, ref int instructionPtr)
         {
             if (Factor > 0)
-                memory[memoryPtr + Offset] += (byte)(memory[memoryPtr]*Factor);
+                memory[memoryPtr + Offset] += (byte) (memory[memoryPtr] * Factor);
             else
-                memory[memoryPtr + Offset] -= (byte)(memory[memoryPtr] * -Factor);
+                memory[memoryPtr + Offset] -= (byte) (memory[memoryPtr] * -Factor);
         }
 
         public override string ToCStatement()

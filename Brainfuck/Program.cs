@@ -8,6 +8,10 @@ namespace Brainfuck
     //https://en.wikipedia.org/wiki/Brainfuck
     //https://esolangs.org/wiki/Brainfuck_algorithms
     //https://esolangs.org/wiki/Brainfuck_constants
+    //https://codereview.stackexchange.com/questions/124467/fibonacci-sequence-in-brainf
+    //https://codereview.stackexchange.com/questions/26648/ascii-table-in-brainfuck/39252#39252
+    //http://www.iwriteiam.nl/Ha_BF.html
+    //https://esolangs.org/wiki/Brainfuck
     class Program
     {
         //http://calmerthanyouare.org/2015/01/07/optimizing-brainfuck.html
@@ -19,7 +23,10 @@ namespace Brainfuck
         {
             // OptimizeClearLoop or OptimizeCopyMultiplyLoop should be called first to allow OptimizeOffset to perform better
 
-            string prg = BrainfuckPrograms.ProgramMandelbrot;
+            //string prg = BrainfuckPrograms.Mandelbrot;
+            string prg = BrainfuckPrograms.Quine2;
+            //string prg = BrainfuckPrograms.LanguageName3D;
+            //string prg = BrainfuckPrograms.CellSize;
             BrainfuckInterpreterOptimized t = new BrainfuckInterpreterOptimized();
             List<InstructionBase> i0 = t.Parse(prg);
             //List<InstructionBase> i1 = t.OptimizeClearLoop(i0);
@@ -45,7 +52,7 @@ namespace Brainfuck
             //List<InstructionBase> i2 = t.OptimizeCopyMultiplyLoop(i1);
 
             //Debug.Write(t.ToCStatements(i2));
-            //Debug.WriteLine(t.ToIntermediateRepresentation(i2));
+            Debug.WriteLine(t.ToIntermediateRepresentation(i2));
 
             Stopwatch sw = new Stopwatch();
             sw.Start();

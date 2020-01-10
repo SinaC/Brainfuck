@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-
+﻿
 namespace Thue
 {
     class Program
@@ -36,7 +35,7 @@ namespace Thue
 
         static void Main(string[] args)
         {
-            ThueInterpreter interpreter = new ThueInterpreter(() => string.Empty, s => Debug.Print(s), ThueInterpreter.TokensProcessingOrders.LeftToRight, ThueInterpreter.RuleSelectionPolicies.Ascending);
+            ThueInterpreter interpreter = new ThueInterpreter(() => string.Empty, System.Console.Write, ThueInterpreter.TokensProcessingOrders.LeftToRight, ThueInterpreter.RuleSelectionPolicies.Ascending);
             interpreter.Parse(Roman);
             interpreter.Execute();
         }

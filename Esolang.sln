@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Befunge", "Befunge\Befunge.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Thue", "Thue\Thue.csproj", "{C216EA05-604C-4845-99F9-2621A425A267}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Deadfish", "Deadfish\Deadfish.csproj", "{C1D67AC0-B7C1-4353-B5A6-4915CD5D9F5C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{C216EA05-604C-4845-99F9-2621A425A267}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C216EA05-604C-4845-99F9-2621A425A267}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C216EA05-604C-4845-99F9-2621A425A267}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1D67AC0-B7C1-4353-B5A6-4915CD5D9F5C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1D67AC0-B7C1-4353-B5A6-4915CD5D9F5C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1D67AC0-B7C1-4353-B5A6-4915CD5D9F5C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1D67AC0-B7C1-4353-B5A6-4915CD5D9F5C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

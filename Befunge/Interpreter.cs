@@ -2,13 +2,14 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using IEsolang;
 
 namespace Befunge
 {
     //https://en.wikipedia.org/wiki/Befunge
     //https://github.com/catseye/Befunge-93/blob/master/doc/Befunge-93.markdown
     //https://rosettacode.org/wiki/Category:Befunge
-    public class Interpreter
+    public class Interpreter : IInterpreter
     {
         //!!! if stack is empty, pop will not failed and return 0
         public enum Directions
@@ -43,7 +44,7 @@ namespace Befunge
             Parse(lines);
         }
 
-        public void Parse(IEnumerable<string> program)
+        private void Parse(IEnumerable<string> program)
         {
             // Empty grid
             ClearGrid();

@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Security.Claims;
 using System.Text;
+using IEsolang;
 
 namespace Thue
 {
-    public class ThueInterpreter
+    public class ThueInterpreter : IInterpreter
     {
         public enum TokensProcessingOrders
         {

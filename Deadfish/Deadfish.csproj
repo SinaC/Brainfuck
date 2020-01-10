@@ -50,5 +50,11 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\IEsolang\IEsolang.csproj">
+      <Project>{7C9E1E15-BDE5-49A1-9EE4-ABF86B3E973D}</Project>
+      <Name>IEsolang</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

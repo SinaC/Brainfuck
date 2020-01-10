@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using IEsolang;
 
 namespace Deadfish
 {
     //https://esolangs.org/wiki/Deadfish#C.23
-    public class DeadfishInterpreter
+    public class DeadfishInterpreter : IInterpreter
     {
         private Dictionary<char, Func<int, int>> Commands { get; }
 

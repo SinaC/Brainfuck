@@ -2,13 +2,14 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using IEsolang;
 
 namespace Malbolge
 {
     //https://en.wikipedia.org/wiki/Malbolge
     //http://www.lscheffer.com/malbolge_spec.html
     //http://www.lscheffer.com/malbolge.shtml
-    public class Interpreter
+    public class Interpreter : IInterpreter
     {
         private const int MaxValue = 59048;
 

@@ -48,6 +48,21 @@
     <Compile Include="BrainfuckPrograms.cs" />
     <Compile Include="IBrainfuckInterpreter.cs" />
     <Compile Include="IDictionaryExtensions.cs" />
+    <Compile Include="Instructions32\AddInstruction.cs" />
+    <Compile Include="Instructions32\ArithmeticInstructionBase.cs" />
+    <Compile Include="Instructions32\ClearInstruction.cs" />
+    <Compile Include="Instructions32\CloseInstruction.cs" />
+    <Compile Include="Instructions32\InInstruction.cs" />
+    <Compile Include="Instructions32\InstructionBase.cs" />
+    <Compile Include="Instructions32\LeftInstruction.cs" />
+    <Compile Include="Instructions32\MulInstruction.cs" />
+    <Compile Include="Instructions32\OpenInstruction.cs" />
+    <Compile Include="Instructions32\OutInstruction.cs" />
+    <Compile Include="Instructions32\PositionInstructionBase.cs" />
+    <Compile Include="Instructions32\RightInstruction.cs" />
+    <Compile Include="Instructions32\ScanLeftInstruction.cs" />
+    <Compile Include="Instructions32\ScanRightInstruction.cs" />
+    <Compile Include="Instructions32\SubInstruction.cs" />
     <Compile Include="Instructions\AddInstruction.cs" />
     <Compile Include="BrainfuckInterpreterListBased.cs" />
     <Compile Include="BrainfuckInterpreterTreeBased.cs" />
@@ -72,6 +87,7 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

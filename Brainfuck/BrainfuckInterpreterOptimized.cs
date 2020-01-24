@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using Brainfuck.Instructions;
+using Brainfuck.Instructions32;
 
 namespace Brainfuck
 {
@@ -36,7 +36,7 @@ namespace Brainfuck
             if (loopStack.Count > 0)
                 throw new InvalidOperationException($"Unmatched OpenInstruction at position { loopStack.Peek()}.");
             //
-            byte[] memory = new byte[65536];
+            int[] memory = new int[65536];
             int memoryPtr = 32765; // starts in the middle
             int ip = 0;
             while (true)

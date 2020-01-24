@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using Brainfuck.Instructions;
+using Brainfuck.Instructions32;
 
 namespace Brainfuck
 {
@@ -24,8 +24,8 @@ namespace Brainfuck
             // OptimizeClearLoop or OptimizeCopyMultiplyLoop should be called first to allow OptimizeOffset to perform better
 
             //string prg = BrainfuckPrograms.Mandelbrot;
-            string prg = BrainfuckPrograms.Quine2;
-            //string prg = BrainfuckPrograms.LanguageName3D;
+            //string prg = BrainfuckPrograms.Quine2;
+            string prg = BrainfuckPrograms.LanguageName3D;
             //string prg = BrainfuckPrograms.CellSize;
             BrainfuckInterpreterOptimized t = new BrainfuckInterpreterOptimized();
             List<InstructionBase> i0 = t.Parse(prg);
